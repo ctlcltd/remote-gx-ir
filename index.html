@@ -11,7 +11,6 @@
 <main id="remote" class="remote view">
 <div id="infobar" class="infobar">
   <div id="sending" class="sending" hidden></div>
-  <span class="epg" title="PROGRAM">EPG Program name</span>
 </div>
 <div id="display" class="display">
   <span class="channel" title="CHANNEL">
@@ -31,100 +30,131 @@
 </div>
 <nav id="controls" class="controls">
   <div class="top">
-    <button class="top-connect" onclick="ir.connect()"><span class="connect-icon connect-icon-disconnect black-diamond" hidden>&#9670;</span><span class="white-diamond connect-icon-reconnect">&#9671;</span> <span class="connect-label connect-label-disconnect" hidden>LOGOUT</span><span class="connect-label connect-label-reconnect">LOGIN</span></button>
+    <button class="top-connect" onclick="ir.connect(arguments[0])"><span class="connect-icon connect-icon-disconnect black-diamond" hidden>&#9670;</span><span class="connect-icon connect-icon-reconnect white-diamond">&#9671;</span> <span class="connect-label connect-label-disconnect" hidden>LOGOUT</span><span class="connect-label connect-label-reconnect">LOGIN</span></button>
     <div>
-      <button class="top-chlist" onclick="ir.chlist()"><span class="trigram-for-heaven">&#9776;</span> CHLIST</button>
-      <button class="top-mirror" onclick="ir.mirror()"><span class="sun">&#9737;</span> MIRROR</button>
-      <button class="top-settings" onclick="ir.settings()"><span class="gear">&#9881;</span> SETTINGS</button>
+      <button class="top-chlist" onclick="ir.chlist(arguments[0])"><span class="trigram-for-heaven">&#9776;</span> CHLIST</button>
+      <button class="top-mirror" onclick="ir.mirror(arguments[0])"><span class="sun">&#9737;</span> MIRROR</button>
     </div>
+    <button class="top-settings" onclick="ir.settings(arguments[0])"><span class="settings-icon flower-punctuation-mark">&#8277;</span> <span class="settings-label">SETTINGS</span></button>
   </div>
   <div class="ctrl">
     <div class="ctrl-left">
-      <button onclick="ir.control('volumeup', false, 'currentVolume')" title="VOLUME UP">VOL <span class="heavy-greek-cross">&#10010;</span></button>
-      <button onclick="ir.control('volumedown', false, 'currentVolume')" title="VOLUME DOWN">VOL <span class="heavy-vertical-bar deg90">&#10074;</span></button>
+      <button onclick="ir.control(arguments[0], 'volumeup', false, 'currentVolume')" title="VOLUME UP">VOL <span class="heavy-greek-cross">&#10010;</span></button>
+      <button onclick="ir.control(arguments[0], 'volumedown', false, 'currentVolume')" title="VOLUME DOWN">VOL <span class="heavy-vertical-bar deg90">&#10074;</span></button>
     </div>
     <div class="ctrl-mid">
       <div>
-        <button class="ctrl-mid-up" onclick="ir.control('up')" title="UP"><span class="black-left--pointing-triangle deg90">&#9664;</span></button>
-        <button class="ctrl-mid-down" onclick="ir.control('down')" title="DOWN"><span class="black-left--pointing-triangle deg270">&#9664;</span></button>
+        <button class="ctrl-mid-up" onclick="ir.control(arguments[0], 'up')" title="UP"><span class="arrow arrow--up"></span></button>
+        <button class="ctrl-mid-down" onclick="ir.control(arguments[0], 'down')" title="DOWN"><span class="arrow arrow--down"></span></button>
       </div>
       <div>
-        <button class="ctrl-mid-left" onclick="ir.control('left')" title="LEFT"><span class="black-left--pointing-triangle">&#9664;</span></button>
-        <button class="ctrl-mid-ok" onclick="ir.control('ok')" title="OK">OK</button>
-        <button class="ctrl-mid-right" onclick="ir.control('right')" title="RIGHT"><span class="black-left--pointing-triangle deg180">&#9664;</span></button>
+        <button class="ctrl-mid-left" onclick="ir.control(arguments[0], 'left')" title="LEFT"><span class="arrow arrow--left"></span></button>
+        <button class="ctrl-mid-ok" onclick="ir.control(arguments[0], 'ok')" title="OK">OK</button>
+        <button class="ctrl-mid-right" onclick="ir.control(arguments[0], 'right')" title="RIGHT"><span class="arrow arrow--right"></span></button>
       </div>
     </div>
     <div class="ctrl-right">
-      <button onclick="ir.control('channelup', false, true)" title="PAGE UP">PAGE <span class="heavy-greek-cross">&#10010;</span></button>
-      <button onclick="ir.control('channeldown', false, true)" title="PAGE DOWN">PAGE <span class="heavy-vertical-bar deg90">&#10074;</span></button>
+      <button onclick="ir.control(arguments[0], 'channelup', false, true)" title="PAGE UP">PAGE <span class="heavy-greek-cross">&#10010;</span></button>
+      <button onclick="ir.control(arguments[0], 'channeldown', false, true)" title="PAGE DOWN">PAGE <span class="heavy-vertical-bar deg90">&#10074;</span></button>
     </div>
     <div class="ctrl-bottom">
-      <button onclick="ir.control('menu')">MENU</button>
-      <button onclick="ir.control('info')">INFO</button>
-      <button onclick="ir.control('exit')">EXIT</button>
-      <button onclick="ir.control('pvr')">PVR</button>
-      <button onclick="ir.control('epg')">EPG</button>
+      <button onclick="ir.control(arguments[0], 'menu')">MENU</button>
+      <button onclick="ir.control(arguments[0], 'info', false, 'currentSignal')">INFO</button>
+      <button onclick="ir.control(arguments[0], 'exit')">EXIT</button>
+      <button onclick="ir.control(arguments[0], 'pvr')">PVR</button>
+      <button onclick="ir.control(arguments[0], 'epg')">EPG</button>
     </div>
   </div>
   <div class="player">
-    <button onclick="ir.control('fb')" title="FAST BACKWARD"><span class="black-left--pointing-triangle flip">&#9658;&#9658;</span></button>
-    <button onclick="ir.control('playpause')" title="PLAY / PAUSE"><span class="black-right--pointing-triangle">&#9658;</span> / <span class="digram-for-greater-yang deg90">&#9868;</span></button>
-    <button onclick="ir.control('ff')" title="FAST FORWARD"><span class="black-right--pointing-triangle">&#9658;&#9658;</span></button>
-    <button onclick="ir.control('stop')" title="STOP"><span class="black-square">&#9632;</span></button>
-    <button onclick="ir.control('rec')" title="REC"><span class="black-circle">&#9679;</span></button>
+    <button onclick="ir.control(arguments[0], 'fb')" title="FAST BACKWARD"><span class="arrow arrow--left"></span><span class="arrow arrow--left"></span></button>
+    <button onclick="ir.control(arguments[0], 'playpause')" title="PLAY / PAUSE"><span class="digram-for-greater-yang deg90">&#9868;</span><span class="arrow arrow--right"></span></button>
+    <button onclick="ir.control(arguments[0], 'ff')" title="FAST FORWARD"><span class="arrow arrow--right"></span><span class="arrow arrow--right"></span></button>
+    <button onclick="ir.control(arguments[0], 'stop')" title="STOP"><span class="black-square">&#9632;</span></button>
+    <button onclick="ir.control(arguments[0], 'rec')" title="REC"><span class="black-circle">&#9679;</span></button>
   </div>
   <div class="funcs">
-    <button class="funcs-f1" onclick="ir.control('red')" title="RED (YouTube)">RED</button>
-    <button class="funcs-f2" onclick="ir.control('green')" title="GREEN (KODI)">GREEN</button>
-    <button class="funcs-f3" onclick="ir.control('yellow')" title="YELLOW (Internet radio)">YELLOW</button>
-    <button class="funcs-f4" onclick="ir.control('blue')" title="BLUE (Tempo)">BLUE</button>
-    <button class="funcs-help" onclick="ir.control('white')" title="WHITE HELP">HELP</button>
+    <button class="funcs-f1" onclick="ir.control(arguments[0], 'red')" title="RED (YouTube)">RED</button>
+    <button class="funcs-f2" onclick="ir.control(arguments[0], 'green')" title="GREEN (KODI)">GREEN</button>
+    <button class="funcs-f3" onclick="ir.control(arguments[0], 'yellow')" title="YELLOW (Internet radio)">YELLOW</button>
+    <button class="funcs-f4" onclick="ir.control(arguments[0], 'blue')" title="BLUE (Tempo)">BLUE</button>
+    <button class="funcs-help" onclick="ir.control(arguments[0], 'white')" title="WHITE HELP">HELP</button>
   </div>
   <div class="bottom">
-    <div class="digits">
-      <div>
-        <button onclick="ir.control('num_1', true)">1</button>
-        <button onclick="ir.control('num_2', true)">2</button>
-        <button onclick="ir.control('num_3', true)">3</button>
+    <div>
+      <div class="misc">
+        <div>
+          <button onclick="ir.control(arguments[0], 'tv_radio', false, true)">TV/RADIO</button>
+          <button onclick="ir.control(arguments[0], 'mute', false, 'currentVolume')">MUTE</button>
+          <button onclick="window.alert('boh')">CONTXT</button>
+          <button onclick="ir.control(arguments[0], 'fav')">FAV</button>
+          <button onclick="ir.control(arguments[0], 'teletext')">TEXT</button>
+          <button onclick="ir.control(arguments[0], 'subtitle')">SUBTITLE</button>
+          <button onclick="ir.control(arguments[0], 'portal')">PORTAL</button>
+          <button onclick="ir.control(arguments[0], 'media')">MEDIA</button>
+          <button onclick="ir.control(arguments[0], 'v_format')">VIDEO</button>
+          <button onclick="ir.control(arguments[0], 'audio')">AUDIO</button>
+          <button onclick="ir.control(arguments[0], 'timer')">TIMER</button>
+          <button onclick="ir.control(arguments[0], 'power')">POWER</button>
+        </div>
       </div>
-      <div>
-        <button onclick="ir.control('num_4', true)">4</button>
-        <button onclick="ir.control('num_5', true)">5</button>
-        <button onclick="ir.control('num_6', true)">6</button>
+      <div class="digits">
+        <div>
+          <button onclick="ir.control(arguments[0], 'num_1', true)">1</button>
+          <button onclick="ir.control(arguments[0], 'num_2', true)">2</button>
+          <button onclick="ir.control(arguments[0], 'num_3', true)">3</button>
+        </div>
+        <div>
+          <button onclick="ir.control(arguments[0], 'num_4', true)">4</button>
+          <button onclick="ir.control(arguments[0], 'num_5', true)">5</button>
+          <button onclick="ir.control(arguments[0], 'num_6', true)">6</button>
+        </div>
+        <div>
+          <button onclick="ir.control(arguments[0], 'num_7', true)">7</button>
+          <button onclick="ir.control(arguments[0], 'num_8', true)">8</button>
+          <button onclick="ir.control(arguments[0], 'num_9', true)">9</button>
+        </div>
+        <div>
+          <button onclick="window.alert('boh')">?</button>
+          <button onclick="ir.control(arguments[0], 'num_0', true)">0</button>
+          <button onclick="ir.prech(arguments[0])">PRE-CH</button>
+        </div>
       </div>
-      <div>
-        <button onclick="ir.control('num_7', true)">7</button>
-        <button onclick="ir.control('num_8', true)">8</button>
-        <button onclick="ir.control('num_9', true)">9</button>
-      </div>
-      <div>
-        <button onclick="window.alert('boh')">?</button>
-        <button onclick="ir.control('num_0', true)">0</button>
-        <button onclick="ir.prech()">PRE-CH</button>
-      </div>
-    </div>
-    <div class="misc">
-      <button onclick="ir.control('tv_radio', false, true)">TV/RADIO</button>
-      <button onclick="ir.control('mute', false, 'currentVolume')">MUTE</button>
-      <button onclick="window.alert('boh')">CONTXT</button>
-      <button onclick="ir.control('fav')">FAV</button>
-      <button onclick="ir.control('teletext')">TEXT</button>
-      <button onclick="ir.control('subtitle')">SUBTITLE</button>
-      <button onclick="ir.control('portal')">PORTAL</button>
-      <button onclick="ir.control('media')">MEDIA</button>
-      <button onclick="ir.control('v_format')">VIDEO</button>
-      <button onclick="ir.control('audio')">AUDIO</button>
-      <button onclick="ir.control('timer')">TIMER</button>
-      <button onclick="ir.control('power')">POWER</button>
     </div>
   </div>
 </nav>
 </main>
-<main id="settings" class="settings view overlay" hidden>
-  <button onclick="ir.settings(true)">CLOSE</button>
-</main>
 <main id="chlist" class="chlist view overlay" hidden>
-  <button onclick="ir.chlist(true)">CLOSE</button>
+  <div class="overlay-top">
+    <button class="close" onclick="ir.chlist(arguments[0], true)" title="CLOSE">&times;</button>
+  </div>
+  <div class="table scrollable clickable">
+    <table>
+      <thead>
+        <th>CHNUM</th>
+        <th>CHLIST</th>
+      </thead>
+      <tbody>
+        <tr hidden>
+          <td class="dchnum">?</td>
+          <td class="dchname">CHANNEL</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+<main id="settings" class="settings view overlay" hidden>
+  <div class="overlay-top">
+    <button class="close" onclick="ir.settings(arguments[0], true)" title="CLOSE">&times;</button>
+  </div>
+  <div class="form scrollable">
+    <form action>
+      <fieldset>
+        <button type="submit">SAVE</button>
+        <button type="reset">RESET</button>
+        <button onclick="window.event.preventDefault(); window.sessionStorage.clear(); window.alert('storage cleared'); this.blur();">TEST</button>
+      </fieldset>
+    </form>
+  </div>
 </main>
 <script src="script.js"></script>
 </body>

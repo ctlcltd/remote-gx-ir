@@ -53,8 +53,9 @@ function xmlToJson(xml) {
 };
 
 function remote() {
-  const defaults = {
-    'address': 'http://localhost:8080/service'
+  this.defaults = {
+    'address': 'http://localhost:8080/service',
+    'refresh': '0'
   };
 
   this.storage = window.sessionStorage;
@@ -71,7 +72,7 @@ function remote() {
 
   try {
     if ('settings' in this.storage === false) {
-      this.storage.setItem('settings', JSON.stringify(defaults));
+      this.storage.setItem('settings', JSON.stringify(this.defaults));
     }
 
     this.rs = JSON.parse(this.storage.settings);
@@ -134,11 +135,37 @@ remote.prototype.status = function(refresh) {
 
 remote.prototype.routine = function() {
   const self = this;
+  let nums = false;
 
   console.log('routine()', arguments);
 
   for (const arg of arguments) {
-    self.control(arg);
+    if (arg.indexOf('num_') != -1) {
+      nums = true;
+
+      setTimeout(function() {
+        self.control(arg);
+
+        this.clearTimeout();
+      }, 25);
+    } else {
+      self.control(arg);
+    }
+  }
+
+  if (nums) {
+    setTimeout(function() {
+      self.control('ok');
+
+      this.clearTimeout();
+    }, 100);
+
+    setTimeout(function() {
+      self.currentChannel();
+      self.currentSignal();
+
+      this.clearTimeout();
+    }, 150);
   }
 }
 
@@ -328,7 +355,7 @@ remote.prototype.control = function(cmd, wait, refresh) {
       self.status('currentSignal');
 
       this.clearTimeout();
-    }, 2000);
+    }, 3000);
   }
 
   update.prototype.currentVolume = function() {
@@ -371,7 +398,7 @@ remote.prototype.connect = function(connected) {
   function disconnect() {
     console.log('connect()', 'disconnect()');
 
-    self.control('F2');
+    self.control('green');
     self.control('exit');
   }
 
@@ -398,6 +425,9 @@ remote.prototype.connect = function(connected) {
 
 remote.prototype.chlist = function(close) {
   const self = this;
+  const table = this.channels.querySelector('table');
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
 
   console.log('chlist()', close);
 
@@ -428,13 +458,15 @@ remote.prototype.chlist = function(close) {
   function list() {
     console.log('chlist()', 'list()');
 
+    if (table.rendered) {
+      return;
+    }
+
     try {
       if (self.storage.chlist) {
         const chlist = JSON.parse(self.storage.chlist);
 
-        for (const chid in chlist) {
-          console.info(chid, chlist[chid]);
-        }
+        render(chlist);
       } else {
         throw 0;
       }
@@ -443,6 +475,49 @@ remote.prototype.chlist = function(close) {
 
       self.error(null, err);
     }
+  }
+
+  function render(data) {
+    console.log('chlist()', 'render()');
+
+    var i = 0;
+
+    const tr_tpl = tbody.firstElementChild;
+
+    for (const chid in data) {
+      const tr = tr_tpl.cloneNode(true);
+
+      tr.firstElementChild.innerText = data[chid].num;
+      tr.lastElementChild.innerText = data[chid].name;
+
+      tr.dataset.chnum = data[chid].num;
+      tr.onclick = channelChange;
+      tr.removeAttribute('hidden');
+
+      tbody.append(tr);
+
+      i++;
+    }
+
+    tr_tpl.remove();
+
+    table.rendered = true;
+  }
+
+  function channelChange(event) {
+    event.preventDefault();
+
+    console.info('chlist()', 'channelChange()', this.dataset.chnum);
+
+    let cmds = this.dataset.chnum.split('').map(function(num) { return 'num_' + num; });
+
+    self.routine.apply(self, cmds);
+
+    setTimeout(function() {
+      hide();
+
+      this.clearTimeout();
+    }, 100);
   }
 
   if (close) {
@@ -511,7 +586,7 @@ remote.prototype.mirror = function() {
     window.alert(url);
   }
 
-  // this.routine('playpause', 'ff', 'ff', 'ff', 'play', 'exit');
+  this.routine('playpause', 'ff', 'ff', 'ff', 'play', 'exit');
 
   setTimeout(function() {
     mirror.then(find).catch(self.error);
@@ -522,6 +597,7 @@ remote.prototype.mirror = function() {
 
 remote.prototype.settings = function(close) {
   const self = this;
+  const form = this.setup.querySelector('form');
 
   console.log('settings()', close);
 
@@ -530,6 +606,8 @@ remote.prototype.settings = function(close) {
 
     self.setup.removeAttribute('hidden');
     self.setup.classList.add('in');
+
+    setup();
 
     setTimeout(function() {
       self.setup.classList.remove('in');
@@ -545,6 +623,70 @@ remote.prototype.settings = function(close) {
       self.setup.setAttribute('hidden', '');
       self.setup.classList.remove('out');
     }, 50);
+  }
+
+  function setup() {
+    console.log('settings()', 'setup()');
+
+    if (form.rendered) {
+      return;
+    }
+
+    try {
+      if (self.storage.settings) {
+        const settings = JSON.parse(self.storage.settings);
+
+        render(settings);
+      } else {
+        throw 0;
+      }
+    } catch (err) {
+      console.error('settings()', 'setup()');
+
+      self.error(null, err);
+    }
+  }
+
+  function render(data) {
+    console.log('settings()', 'render()');
+
+    const fieldset = document.createElement('fieldset');
+    const fieldset_ph = form.firstElementChild;
+
+    for (const field in data) {
+      const row = data[field];
+
+      const div = document.createElement('div');
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+
+      label.innerText = field;
+      input.setAttribute('type', 'text');
+      input.value = row ? row.toString() : '';
+
+      div.append(label);
+      div.append(input);
+
+      fieldset.append(div);
+
+      form.insertBefore(fieldset, fieldset_ph);
+    }
+
+    form.rendered = true;
+  }
+
+  function save() {
+    console.log('settings()', 'save()');
+
+    var data = {};
+
+    self.rs = data;
+  }
+
+  function reset() {
+    console.log('settings()', 'reset()');
+
+
   }
 
   if (close) {
@@ -576,8 +718,8 @@ remote.prototype.session = function() {
           self.update();
         }
 
-        if (! self.tick) {
-          // self.tick = setInterval(self.status.bind(self), 3e4);
+        if (! self.tick && self.rs.refresh != '0') {
+          self.tick = setInterval(self.status.bind(self), 3e4);
         }
       } else {
         self.storage.setItem('connected', false);
@@ -599,4 +741,31 @@ remote.prototype.session = function() {
   session.then(check).catch(this.error);
 }
 
-const ir = window.ir = new remote();
+const _remote = new remote();
+
+function _proxy(callee) {
+  return function(event) {
+    const currentTarget = event.currentTarget;
+
+    event.preventDefault();
+
+    _remote[callee].apply(_remote, Object.values(arguments).slice(1));
+
+    setTimeout(function() {
+      currentTarget.blur();
+
+      this.clearTimeout();
+    }, 150);
+
+    return false;
+  }
+}
+
+function ir() {}
+ir.prototype.connect = _proxy('connect');
+ir.prototype.chlist = _proxy('chlist');
+ir.prototype.mirror = _proxy('mirror');
+ir.prototype.settings = _proxy('settings');
+ir.prototype.control = _proxy('control');
+
+const _ir = window.ir = new ir();
