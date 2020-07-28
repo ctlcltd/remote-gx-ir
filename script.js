@@ -2,7 +2,7 @@
  * remote-gx-ir/script.js
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-07-25
+ * @version 2020-07-28
  * @license MIT License
  */
 
@@ -418,8 +418,8 @@ remote.prototype.connect = function(connected) {
     button.querySelector('.connect-label-reconnect').removeAttribute('hidden');
     button.querySelector('.connect-label-reconnect').removeAttribute('hidden');
 
-    button.querySelector('.connect-icon-reconnect').setAttribute('hidden', '');
-    button.querySelector('.connect-label-reconnect').setAttribute('hidden', '');
+    button.querySelector('.connect-icon-disconnect').setAttribute('hidden', '');
+    button.querySelector('.connect-label-disconnect').setAttribute('hidden', '');
   }
 }
 

@@ -30,17 +30,17 @@
 </div>
 <nav id="controls" class="controls">
   <div class="top">
-    <button class="top-connect" onclick="ir.connect(arguments[0])"><span class="connect-icon connect-icon-disconnect black-diamond" hidden>&#9670;</span><span class="connect-icon connect-icon-reconnect white-diamond">&#9671;</span> <span class="connect-label connect-label-disconnect" hidden>LOGOUT</span><span class="connect-label connect-label-reconnect">LOGIN</span></button>
+    <button class="top-connect" onclick="ir.connect(arguments[0])"><span class="connect-icon connect-icon-disconnect" hidden></span><span class="connect-icon connect-icon-reconnect"></span> <span class="connect-label connect-label-disconnect" hidden>LOGOUT</span><span class="connect-label connect-label-reconnect">LOGIN</span></button>
     <div>
-      <button class="top-chlist" onclick="ir.chlist(arguments[0])"><span class="trigram-for-heaven">&#9776;</span> CHLIST</button>
-      <button class="top-mirror" onclick="ir.mirror(arguments[0])"><span class="sun">&#9737;</span> MIRROR</button>
+      <button class="top-chlist" onclick="ir.chlist(arguments[0])"><span class="chlist-icon"></span> CHLIST</button>
+      <button class="top-mirror" onclick="ir.mirror(arguments[0])"><span class="mirror-icon"></span> MIRROR</button>
     </div>
-    <button class="top-settings" onclick="ir.settings(arguments[0])"><span class="settings-icon flower-punctuation-mark">&#8277;</span> <span class="settings-label">SETTINGS</span></button>
+    <button class="top-settings" onclick="ir.settings(arguments[0])"><span class="settings-icon"></span> <span class="settings-label">SETTINGS</span></button>
   </div>
   <div class="ctrl">
     <div class="ctrl-left">
-      <button onclick="ir.control(arguments[0], 'volumeup', false, 'currentVolume')" title="VOLUME UP">VOL <span class="heavy-greek-cross">&#10010;</span></button>
-      <button onclick="ir.control(arguments[0], 'volumedown', false, 'currentVolume')" title="VOLUME DOWN">VOL <span class="heavy-vertical-bar deg90">&#10074;</span></button>
+      <button onclick="ir.control(arguments[0], 'volumeup', false, 'currentVolume')" title="VOLUME UP">VOL <span class="plus-icon"></span></button>
+      <button onclick="ir.control(arguments[0], 'volumedown', false, 'currentVolume')" title="VOLUME DOWN">VOL <span class="minus-icon"></span></button>
     </div>
     <div class="ctrl-mid">
       <div>
@@ -54,8 +54,8 @@
       </div>
     </div>
     <div class="ctrl-right">
-      <button onclick="ir.control(arguments[0], 'channelup', false, true)" title="PAGE UP">PAGE <span class="heavy-greek-cross">&#10010;</span></button>
-      <button onclick="ir.control(arguments[0], 'channeldown', false, true)" title="PAGE DOWN">PAGE <span class="heavy-vertical-bar deg90">&#10074;</span></button>
+      <button onclick="ir.control(arguments[0], 'channelup', false, true)" title="PAGE UP">PAGE <span class="plus-icon"></span></button>
+      <button onclick="ir.control(arguments[0], 'channeldown', false, true)" title="PAGE DOWN">PAGE <span class="minus-icon"></span></button>
     </div>
     <div class="ctrl-bottom">
       <button onclick="ir.control(arguments[0], 'menu')">MENU</button>
@@ -66,11 +66,11 @@
     </div>
   </div>
   <div class="player">
-    <button onclick="ir.control(arguments[0], 'fb')" title="FAST BACKWARD"><span class="arrow arrow--left"></span><span class="arrow arrow--left"></span></button>
-    <button onclick="ir.control(arguments[0], 'playpause')" title="PLAY / PAUSE"><span class="digram-for-greater-yang deg90">&#9868;</span><span class="arrow arrow--right"></span></button>
-    <button onclick="ir.control(arguments[0], 'ff')" title="FAST FORWARD"><span class="arrow arrow--right"></span><span class="arrow arrow--right"></span></button>
-    <button onclick="ir.control(arguments[0], 'stop')" title="STOP"><span class="black-square">&#9632;</span></button>
-    <button onclick="ir.control(arguments[0], 'rec')" title="REC"><span class="black-circle">&#9679;</span></button>
+    <button onclick="ir.control(arguments[0], 'fb')" title="FAST BACKWARD"><span class="fast-backward-icon"><span class="arrow arrow--left"></span><span class="arrow arrow--left"></span></span></button>
+    <button onclick="ir.control(arguments[0], 'playpause')" title="PLAY / PAUSE"><span class="play-pause-icon"><span class="pause-icon"></span><span class="play-icon arrow arrow--right"></span></span></button>
+    <button onclick="ir.control(arguments[0], 'ff')" title="FAST FORWARD"><span class="fast-forward-icon"><span class="arrow arrow--right"></span><span class="arrow arrow--right"></span></span></button>
+    <button onclick="ir.control(arguments[0], 'stop')" title="STOP"><span class="stop-icon"></span></button>
+    <button onclick="ir.control(arguments[0], 'rec')" title="REC"><span class="rec-icon"></span></button>
   </div>
   <div class="funcs">
     <button class="funcs-f1" onclick="ir.control(arguments[0], 'red')" title="RED (YouTube)">RED</button>
@@ -114,7 +114,7 @@
           <button onclick="ir.control(arguments[0], 'num_9', true)">9</button>
         </div>
         <div>
-          <button onclick="window.alert('boh')">?</button>
+          <button onclick="window.alert('boh')">NEXT</button>
           <button onclick="ir.control(arguments[0], 'num_0', true)">0</button>
           <button onclick="ir.prech(arguments[0])">PRE-CH</button>
         </div>
