@@ -2,7 +2,7 @@
  * remote-gx-ir/script.js
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-07-28
+ * @version 2020-07-29
  * @license MIT License
  */
 
@@ -80,6 +80,8 @@ function remote() {
     this.error(err, 'storage settings');
   }
 
+  this._req = 0;
+
   this.remote = document.getElementById('remote');
   this.info = document.getElementById('info');
   this.setup = document.getElementById('settings');
@@ -87,6 +89,7 @@ function remote() {
   this.sender = document.getElementById('sending');
   this.controls = document.getElementById('controls');
   this.channels = document.getElementById('chlist');
+  this.stream = document.getElementById('mirror');
 
   this.session();
 }
@@ -101,7 +104,11 @@ remote.prototype.request = function(service, uri) {
   uri = uri ? uri.toString() : '';
 
   const xhr = new XMLHttpRequest();
-  const url = this.rs.address + service + uri;
+  let url = this.rs.address + service + uri;
+
+  if (this._req) {
+    url += url.indexOf('?') === -1 ? '?t=' + this._req : '&t=' + this._req;
+  }
 
   xhr.open('get', url);
   xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -141,9 +148,13 @@ remote.prototype.routine = function() {
 
   for (const arg of arguments) {
     if (arg.indexOf('num_') != -1) {
+      this._req = new Date().getTime();
+
       nums = true;
 
       setTimeout(function() {
+        self._req += 25;
+
         self.control(arg);
 
         this.clearTimeout();
@@ -155,14 +166,15 @@ remote.prototype.routine = function() {
 
   if (nums) {
     setTimeout(function() {
+      self._req = 0;
+
       self.control('ok');
 
       this.clearTimeout();
     }, 100);
 
     setTimeout(function() {
-      self.currentChannel();
-      self.currentSignal();
+      new self.refresh(true);
 
       this.clearTimeout();
     }, 150);
@@ -264,7 +276,39 @@ remote.prototype.currentVolume = function() {
   volume.then(command).catch(this.error);
 }
 
+remote.prototype.return = function() {
+  const self = this;
+  var count = 0;
+
+  console.log('return()');
+
+  function command() {
+    self._req = new Date().getTime();
+
+    self.control('exit');
+
+    if (count++ === 5) {
+      self._req = 0;
+
+      clearInterval(timer);
+    }
+  }
+
+  var timer = setInterval(command, 75);
+}
+
 remote.prototype.prech = function() {
+  const self = this;
+
+  console.log('prech()');
+
+  this.control('recall');
+
+  setTimeout(function() {
+    self.control('ok', false, true);
+
+    this.clearTimeout();
+  }, 100);
 }
 
 remote.prototype.parser = function(xml) {
@@ -299,7 +343,7 @@ remote.prototype.control = function(cmd, wait, refresh) {
 
           timer = setTimeout(elapsed, 5000);
         } else {
-          new update(refresh);
+          new self.refresh(refresh);
         }
       } else {
         throw 0;
@@ -312,7 +356,7 @@ remote.prototype.control = function(cmd, wait, refresh) {
   }
 
   function elapsed() {
-    new update(true);
+    new self.refresh(true);
 
     if (wait) {
       chdigits.setAttribute('hidden', '');
@@ -329,41 +373,6 @@ remote.prototype.control = function(cmd, wait, refresh) {
     if (chdigits.innerText.length === 4 && ! timer) {
       elapsed();
     }
-  }
-
-  function update(refresh) {
-    console.log('control()', 'update()', refresh);
-
-    if (typeof refresh === 'string') {
-      this[refresh]();
-    } else if (refresh) {
-      this.currentChannel();
-      this.currentSignal();
-    }
-  }
-
-  update.prototype.currentChannel = function() {
-    setTimeout(function() {
-      self.status('currentChannel');
-
-      this.clearTimeout();
-    }, 500);
-  }
-
-  update.prototype.currentSignal = function() {
-    setTimeout(function() {
-      self.status('currentSignal');
-
-      this.clearTimeout();
-    }, 3000);
-  }
-
-  update.prototype.currentVolume = function() {
-    setTimeout(function() {
-      self.status('currentVolume');
-
-      this.clearTimeout();
-    }, 500);
   }
 
   action.then(command).catch(this.error);
@@ -383,6 +392,41 @@ remote.prototype.sending = function() {
   }
 
   setTimeout(hide, 250);
+}
+
+remote.prototype.refresh = function(refresh) {
+  console.log('refresh()', refresh);
+
+  if (typeof refresh === 'string') {
+    this[refresh]();
+  } else if (refresh) {
+    this.currentChannel();
+    this.currentSignal();
+  }
+}
+
+remote.prototype.refresh.prototype.currentChannel = function() {
+  setTimeout(function() {
+    _remote.status('currentChannel');
+
+    this.clearTimeout();
+  }, 500);
+}
+
+remote.prototype.refresh.prototype.currentSignal = function() {
+  setTimeout(function() {
+    _remote.status('currentSignal');
+
+    this.clearTimeout();
+  }, 3000);
+}
+
+remote.prototype.refresh.prototype.currentVolume = function() {
+  setTimeout(function() {
+    _remote.status('currentVolume');
+
+    this.clearTimeout();
+  }, 500);
 }
 
 remote.prototype.connect = function(connected) {
@@ -408,18 +452,22 @@ remote.prototype.connect = function(connected) {
     self.session();
   }
 
-  if (connected === true) {
+  if (connected) {
     button.querySelector('.connect-icon-disconnect').removeAttribute('hidden', '');
     button.querySelector('.connect-label-disconnect').removeAttribute('hidden', '');
 
     button.querySelector('.connect-icon-reconnect').setAttribute('hidden', '');
     button.querySelector('.connect-label-reconnect').setAttribute('hidden', '');
-  } else if (connected === false) {
+
+    // disconnect();
+  } else {
     button.querySelector('.connect-label-reconnect').removeAttribute('hidden');
     button.querySelector('.connect-label-reconnect').removeAttribute('hidden');
 
     button.querySelector('.connect-icon-disconnect').setAttribute('hidden', '');
     button.querySelector('.connect-label-disconnect').setAttribute('hidden', '');
+
+    // reconnect();
   }
 }
 
@@ -558,41 +606,185 @@ remote.prototype.update = function() {
   channels.then(download).catch(self.error);
 }
 
-remote.prototype.mirror = function() {
+remote.prototype.mirror = function(close) {
   const self = this;
-  const mirror = this.request('mirror');
+  const form = this.stream.querySelector('form');
 
-  console.log('mirror()');
+  console.log('mirror()', close);
 
-  function find(xhr) {
-    console.log('mirror()', 'find()', xhr);
+  function stream(xhr) {
+    console.log('mirror()', 'stream()', xhr);
 
     try {
       if (xhr.response != 'error') {
-        link(xhr.response);
+        data = JSON.parse(xhr.response);
+
+        links(data);
       } else {
         throw 0;
       }
     } catch (err) {
-      console.error('mirror()', 'find()');
+      console.error('mirror()', 'stream()');
 
       self.error(xhr, err);
     }
   }
 
-  function link(url) {
-    console.log('mirror()', 'link()', url);
+  function show() {
+    console.log('mirror()', 'show()');
 
-    window.alert(url);
+    self.stream.removeAttribute('hidden');
+    self.stream.classList.add('in');
+
+    render();
+
+    setTimeout(function() {
+      self.stream.classList.remove('in');
+
+      this.clearTimeout();
+    }, 50);
+
+    setTimeout(function() {
+      const mirror = self.request('mirror');
+
+      mirror.then(stream).catch(self.error);
+
+      this.clearTimeout();
+    }, 3e2);
   }
 
-  this.routine('playpause', 'ff', 'ff', 'ff', 'play', 'exit');
+  function hide() {
+    console.log('mirror()', 'hide()');
 
-  setTimeout(function() {
-    mirror.then(find).catch(self.error);
+    self.stream.classList.add('out');
 
-    this.clearTimeout();
-  }, 3e0);
+    clear();
+
+    setTimeout(function() {
+      self.stream.setAttribute('hidden', '');
+      self.stream.classList.remove('out');
+
+      this.clearTimeout();
+    }, 50);
+  }
+
+  function render() {
+    console.log('mirror()', 'render()');
+
+    form.querySelector('#streamurl').onclick = open;
+
+    form.lastElementChild.firstElementChild.onclick = copy;
+    form.lastElementChild.lastElementChild.onclick = stop;
+  }
+
+  function clear() {
+    console.log('mirror()', 'clear()');
+
+    form.querySelector('#stream').setAttribute('hidden', '');
+
+    form.querySelector('#srcurl').value = '';
+
+    form.querySelector('#streamurl').value = '';
+    form.querySelector('#streamurl').onclick = null;
+
+    form.lastElementChild.firstElementChild.onclick = null;
+    form.lastElementChild.lastElementChild.onclick = null;
+  }
+
+  function links(data) {
+    console.log('mirror()', 'links()', data);
+
+    form.querySelector('#srcurl').value = data.srcurl;
+
+    if ('streamurl' in data) {
+      form.querySelector('#stream').removeAttribute('hidden');
+      form.querySelector('#streamurl').value = data.streamurl;
+    }
+  }
+
+  function copy(event) {
+    event.preventDefault();
+
+    console.log('mirror()', 'copy()');
+
+    var clipb = document.createElement('TEXTAREA');
+
+    clipb.style = 'position: absolute; top: 0; right: 0; width: 0; height: 0; z-index: -1; overflow: hidden;';
+    clipb.value = form.querySelector('input[type="text"]').value
+
+    document.body.appendChild(clipb);
+
+    if (navigator.userAgent.match(/(iPad|iPhone|iPod)/i)) {
+      var range = document.createRange();
+      range.selectNodeContents(clipb);
+
+      var selection = getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      clipb.setSelectionRange(0, 999999);
+    } else {
+      clipb.focus();
+      clipb.select();
+    }
+
+    document.execCommand('copy');
+    document.body.removeChild(clipb);
+  }
+
+  function open(event) {
+    event.preventDefault();
+
+    console.log('mirror()', 'open()');
+
+    if (form.querySelector('#streamurl').value) {
+      window.open(form.querySelector('#streamurl').value);
+    }
+  }
+
+  function stop(event) {
+    event.preventDefault();
+
+    console.log('mirror()', 'stop()');
+
+    self.routine('stop', 'channelup', 'channeldown');
+
+    setTimeout(function() {
+      self.status('currentChannel');
+
+      this.clearTimeout();
+    }, 500);
+
+    setTimeout(function() {
+      self.status('currentSignal');
+
+      this.clearTimeout();
+    }, 3000);
+
+    const mirror = self.request('mirror', '/close');
+
+    mirror.then(hide).catch(self.error);
+
+    this.blur();
+  }
+
+  if (close) {
+    return hide();
+  }
+
+  if (this.setup.hasAttribute('hidden')) {
+    this.routine('playpause');
+
+    setTimeout(function() {
+      self.control('stop');
+
+      this.clearTimeout();
+    }, 100);
+
+    show();
+  } else {
+    hide();
+  }
 }
 
 remote.prototype.settings = function(close) {
@@ -611,6 +803,8 @@ remote.prototype.settings = function(close) {
 
     setTimeout(function() {
       self.setup.classList.remove('in');
+
+      this.clearTimeout();
     }, 50);
   }
 
@@ -622,6 +816,8 @@ remote.prototype.settings = function(close) {
     setTimeout(function() {
       self.setup.setAttribute('hidden', '');
       self.setup.classList.remove('out');
+
+      this.clearTimeout();
     }, 50);
   }
 
@@ -709,7 +905,7 @@ remote.prototype.session = function() {
 
     try {
       if (xhr.response === 'OK') {
-        self.storage.setItem('connected', true);
+        self.storage.setItem('connected', 1);
         self.connect(true);
 
         if (self.storage.chlist) {
@@ -718,11 +914,11 @@ remote.prototype.session = function() {
           self.update();
         }
 
-        if (! self.tick && self.rs.refresh != '0') {
-          self.tick = setInterval(self.status.bind(self), 3e4);
-        }
+        // if (! self.tick && self.rs.refresh != '0') {
+        //   self.tick = setInterval(self.status.bind(self), 3e4);
+        // }
       } else {
-        self.storage.setItem('connected', false);
+        self.storage.setItem('connected', 0);
         self.connect(false);
 
         if (self.tick) {
@@ -767,5 +963,7 @@ ir.prototype.chlist = _proxy('chlist');
 ir.prototype.mirror = _proxy('mirror');
 ir.prototype.settings = _proxy('settings');
 ir.prototype.control = _proxy('control');
+ir.prototype.return = _proxy('return');
+ir.prototype.prech = _proxy('prech');
 
 const _ir = window.ir = new ir();

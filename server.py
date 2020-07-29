@@ -2,7 +2,7 @@
 #  remote-gx-ir/server.py
 #  
 #  @author Leonardo Laureti <https://loltgt.ga>
-#  @version 2020-07-28
+#  @version 2020-07-29
 #  @license MIT License
 #  
 
@@ -14,12 +14,14 @@ from io import BytesIO
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 from ftplib import FTP
+import time
+import subprocess
 
 
 def command(uri):
-	url = 'http://' + config['WEBIF']['HOST'] + '/' + uri
+	print('command()', uri)
 
-	print('command()', url)
+	url = 'http://' + config['WEBIF']['HOST'] + '/' + uri
 
 	try:
 		request = urllib.request.urlopen(url, timeout=2)
@@ -33,11 +35,11 @@ def command(uri):
 	return {'data': data, 'headers': {'Content-Type': mimetype}}
 
 def chlist(uri):
-	print('chlist()')
+	print('chlist()', uri)
 
 	ftp = FTP()
-	ftpconnect = ftp.connect(host=config['WEBIF']['HOST'], port=int(config['WEBIF']['PORT']))
-	ftplogin = ftp.login(user=config['WEBIF']['USER'], passwd=config['WEBIF']['PASS'])
+	ftpconnect = ftp.connect(host=config['FTP']['HOST'], port=int(config['FTP']['PORT']))
+	ftplogin = ftp.login(user=config['FTP']['USER'], passwd=config['FTP']['PASS'])
 
 	print('chlist()', 'ftp', ftp.getwelcome())
 
@@ -122,18 +124,26 @@ def chlist(uri):
 	return {'data': json.dumps(channel_list).encode('utf-8'), 'headers': {'Content-Type': 'application/json'}}
 
 def mirror(uri):
-	print('mirror()')
+	print('mirror()', uri)
+
+	if int(config['MIRROR']['STREAM']) and 'stream' in globals():
+		print('mirror()', 'streaming', 'kill()')
+
+		globals()['stream'].kill()
+
+	if uri == 'close':
+		return {'data': b'OK'}
 
 	ftp = FTP()
-	ftpconnect = ftp.connect(host=config['WEBIF']['HOST'], port=21)
-	ftplogin = ftp.login(user=config['WEBIF']['USER'], passwd=config['WEBIF']['PASS'])
+	ftpconnect = ftp.connect(host=config['FTP']['HOST'], port=int(config['FTP']['PORT']))
+	ftplogin = ftp.login(user=config['FTP']['USER'], passwd=config['FTP']['PASS'])
 
 	print('mirror()', 'ftp', ftp.getwelcome())
 
-	url = b'';
+	mirror = {}
 
 	if ftpconnect.startswith('220') and ftplogin.startswith('230'):
-		dircwd = '/../..' + config['DRIVE']['DISK'].rstrip('/')
+		dircwd = '/../..' + config['MIRROR']['DRIVE'].rstrip('/')
 		dirlist = ftp.nlst(dircwd)
 
 		if dircwd + '/timeshift' in dirlist:
@@ -146,9 +156,8 @@ def mirror(uri):
 					dirlist = ftp.nlst(dirlist[0])
 
 					if dirlist:
-						url = 'ftp://' + config['WEBIF']['USER'] + '@' + config['WEBIF']['HOST']
-						url += str(dirlist[0])
-						url = url.encode('utf-8')
+						srcurl = 'ftp://' + config['FTP']['USER'] + '@' + config['FTP']['HOST']
+						srcurl += str(dirlist[0])
 	else:
 		ftp.quit()
 
@@ -160,7 +169,49 @@ def mirror(uri):
 
 	print('mirror()', 'ftp', ftpquit)
 
-	return {'data': url}
+	mirror = {}
+
+	if srcurl:
+		mirror['srcurl'] = srcurl
+
+		streamurl = 'rtp://' + config['MIRROR']['HOST'] + ':' + config['MIRROR']['PORT']
+
+		mirror['streamurl'] = streamurl
+
+		if int(config['MIRROR']['STREAM']) and subprocess.getstatusoutput('ffmpeg')[0]:
+			time.sleep(int(config['MIRROR']['DELAY']))
+
+			streampipe  = 'ffmpeg'
+			streampipe += ' -re'
+			streampipe += ' -ftp-password ' + config['FTP']['PASS']
+			streampipe += ' -i ' + srcurl
+			# streampipe += ' -sseof -99'
+			streampipe += ' -vcodec copy'
+			streampipe += ' -acodec copy'
+			streampipe += ' -f rtp_mpegts ' + streamurl
+
+			stream = subprocess.Popen(streampipe.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+
+			if stream.stdout:
+				print('mirror()', 'streaming at', config['MIRROR']['HOST'] + ':' + config['MIRROR']['PORT'])
+	
+				count = 0
+
+				for line in stream.stdout:
+					count += 1
+
+					print(line)
+
+					if count == 100:
+						break
+
+				mirror['streampid'] = stream.pid
+
+				globals()['stream'] = stream
+			else:
+				print('mirror()', 'streaming failed')
+
+	return {'data': json.dumps(mirror).encode('utf-8'), 'headers': {'Content-Type': 'application/json'}}
 
 class Handler(SimpleHTTPRequestHandler):
 	def service(self):
@@ -204,10 +255,9 @@ class Handler(SimpleHTTPRequestHandler):
 def run(server_class=TCPServer, handler_class=Handler):
 	server_host = config['SERVER']['HOST']
 	server_port = int(config['SERVER']['PORT'])
-	server_address = (server_host, server_port)
-	server = server_class(server_address, handler_class)
+	server = server_class((server_host, server_port), handler_class)
 
-	print('run()', 'serving at', server_address)
+	print('run()', 'serving at', config['SERVER']['HOST'] + ':' + config['SERVER']['PORT'])
 
 	try:
 		server.serve_forever()

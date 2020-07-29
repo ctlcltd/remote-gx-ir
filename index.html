@@ -60,9 +60,8 @@
     <div class="ctrl-bottom">
       <button onclick="ir.control(arguments[0], 'menu')">MENU</button>
       <button onclick="ir.control(arguments[0], 'info', false, 'currentSignal')">INFO</button>
+      <button onclick="ir.return(arguments[0])">RETURN</button>
       <button onclick="ir.control(arguments[0], 'exit')">EXIT</button>
-      <button onclick="ir.control(arguments[0], 'pvr')">PVR</button>
-      <button onclick="ir.control(arguments[0], 'epg')">EPG</button>
     </div>
   </div>
   <div class="player">
@@ -84,17 +83,15 @@
       <div class="misc">
         <div>
           <button onclick="ir.control(arguments[0], 'tv_radio', false, true)">TV/RADIO</button>
-          <button onclick="ir.control(arguments[0], 'mute', false, 'currentVolume')">MUTE</button>
-          <button onclick="window.alert('boh')">CONTXT</button>
           <button onclick="ir.control(arguments[0], 'fav')">FAV</button>
           <button onclick="ir.control(arguments[0], 'teletext')">TEXT</button>
           <button onclick="ir.control(arguments[0], 'subtitle')">SUBTITLE</button>
-          <button onclick="ir.control(arguments[0], 'portal')">PORTAL</button>
-          <button onclick="ir.control(arguments[0], 'media')">MEDIA</button>
+          <button onclick="ir.control(arguments[0], 'recall')">RECALL</button>
+          <button onclick="ir.control(arguments[0], 'epg')">EPG</button>
           <button onclick="ir.control(arguments[0], 'v_format')">VIDEO</button>
           <button onclick="ir.control(arguments[0], 'audio')">AUDIO</button>
-          <button onclick="ir.control(arguments[0], 'timer')">TIMER</button>
           <button onclick="ir.control(arguments[0], 'power')">POWER</button>
+          <button onclick="ir.control(arguments[0], 'mute', false, 'currentVolume')">MUTE</button>
         </div>
       </div>
       <div class="digits">
@@ -114,9 +111,9 @@
           <button onclick="ir.control(arguments[0], 'num_9', true)">9</button>
         </div>
         <div>
-          <button onclick="window.alert('boh')">NEXT</button>
+          <button onclick="ir.control(arguments[0], 'channelup', false, true)">NEXT</button>
           <button onclick="ir.control(arguments[0], 'num_0', true)">0</button>
-          <button onclick="ir.prech(arguments[0])">PRE-CH</button>
+          <button id="prech" onclick="ir.prech(arguments[0])">PRE-CH</button>
         </div>
       </div>
     </div>
@@ -140,6 +137,27 @@
         </tr>
       </tbody>
     </table>
+  </div>
+</main>
+<main id="mirror" class="mirror view overlay" hidden>
+  <div class="overlay-top">
+    <button class="close" onclick="ir.mirror(arguments[0], true)" title="CLOSE">&times;</button>
+  </div>
+  <div class="form">
+    <form action>
+      <fieldset id="src">
+        <label for="srcurl">Source URL</label>
+        <input class="srcurl" id="srcurl" type="text" readonly>
+      </fieldset>
+      <fieldset id="stream" hidden>
+        <label>Stream URL</label>
+        <input class="streamurl" id="streamurl" type="text" readonly>
+      </fieldset>
+      <fieldset>
+        <button>CLIPBOARD</button>
+        <button><span class="stop-icon"></span> STOP</button>
+      </fieldset>
+    </form>
   </div>
 </main>
 <main id="settings" class="settings view overlay" hidden>

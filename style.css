@@ -2,7 +2,7 @@
  * remote-gx-ir/style.css
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-07-28
+ * @version 2020-07-29
  * @license MIT License
  */
 
@@ -198,7 +198,7 @@ input, textarea, select {
   color: #fff;
   background: #3c3c3c;
   text-align: left;
-  border: solid #424242;
+  border: solid #3f3f3f;
   border-width: .05rem 0 0 0;
   border-radius: 0;
   -webkit-appearance: none;
@@ -424,33 +424,36 @@ button.close {
   margin-right: .6rem;
   margin-left: .6rem;
 }
-.funcs button:not(:last-child) {
+.funcs button:not(.funcs-help) {
   width: 1.5rem;
   height: 1.5rem;
   padding: 0;
   border-radius: 50%;
   text-indent: -999pt;
 }
-.funcs button:not(:last-child):after {
+.funcs button:after {
   content: '';
   position: absolute;
   top: 0;
-  right: 0;
+  right: .05rem;
   bottom: 0;
-  left: 0;
+  left: .05rem;
   background: rgba(0,0,0,.12);
 }
-.funcs button:not(:last-child):after:focus {
-  background: rgba(0,0,0,0);
+.funcs button:not(.funcs-help):after {
+  border-radius: 50%;
 }
-.funcs button:last-child {
+.funcs button:focus:after {
+  background: rgba(0,0,0,.06);
+}
+.funcs .funcs-help {
   margin-left: 2rem;
 }
-.funcs .funcs-f1 { background: red; }
-.funcs .funcs-f2 { background: green; }
-.funcs .funcs-f3 { background: yellow; }
-.funcs .funcs-f4 { background: blue; }
-.funcs .funcs-help { color: #000; background: lightgrey; }
+.funcs .funcs-f1, .funcs .funcs-f1:focus { background: red; }
+.funcs .funcs-f2, .funcs .funcs-f2:focus { background: green; }
+.funcs .funcs-f3, .funcs .funcs-f3:focus { background: yellow; }
+.funcs .funcs-f4, .funcs .funcs-f4:focus { background: blue; }
+.funcs .funcs-help, .funcs .funcs-help:focus { color: #000; background: white; }
 
 .bottom {
   display: block;
@@ -491,7 +494,8 @@ button.close {
 }
 
 .digits button,
-.funcs button:last-child {
+.funcs .funcs-help,
+.funcs .funcs-help:after {
   border-radius: .4rem;
 }
 
@@ -508,6 +512,8 @@ button.close {
 
 .misc button {
   margin-top: .4rem;
+  margin-right: .3rem;
+  margin-left: .3rem;
   min-width: 6rem;
   max-width: 44%;
   text-overflow: ellipsis;
@@ -711,8 +717,8 @@ button.close {
 }
 .arrow--up { top: -.15rem; border-top-color: transparent; border-left-color: transparent; border-right-color: transparent; }
 .arrow--down { top: .3rem; border-bottom-color: transparent; border-left-color: transparent; border-right-color: transparent; }
-.arrow--left { left: -.15rem; border-top-color: transparent; border-bottom-color: transparent;  border-left-color: transparent;}
-.arrow--right { left: .1rem; border-top-color: transparent; border-bottom-color: transparent; border-right-color: transparent; }
+.arrow--left { top: .02rem; left: -.1rem; border-top-color: transparent; border-bottom-color: transparent;  border-left-color: transparent;}
+.arrow--right { top: .02rem; left: .1rem; border-top-color: transparent; border-bottom-color: transparent; border-right-color: transparent; }
 
 .plus-icon,
 .plus-icon:before,
@@ -775,57 +781,49 @@ button.close {
   width: .9rem;
   height: .8rem;
   margin: -.05rem;
+  border-width: .1rem;
 }
 .mirror-icon:after {
   content: '';
   position: relative;
   top: -.1rem;
   display: inline-block;
-  width: .15rem;
-  height: .02rem;
+  width: .05rem;
+  height: 0;
+  border-width: .12rem;
 }
 .mirror-icon,
 .mirror-icon:after {
   border-radius: 25%;
-  border: .1rem solid;
+  border-style: solid;
 }
 
 .settings-icon {
-  top: -.05rem;
+  top: .05rem;
   width: 0;
   height: 0;
-  margin: 0 -.05rem 0 .1rem;
+  margin: 0 -.1rem 0 .1rem;
   border: solid;
-  border-width: .15rem;
+  border-width: .29rem;
   transform: scale(1.1);
 }
 .settings-icon,
-.settings-icon:after,
 .settings-icon:before {
   border-radius: 50%;
 }
-.settings-icon:after,
 .settings-icon:before {
   content: '';
   position: absolute;
   display: block;
 }
-.settings-icon:after {
-  top: -.28rem;
-  left: -.28rem;
-  width: .45rem;
-  height: .45rem;
-  border-style: dotted;
-  border-width: .07rem;
-}
 .settings-icon:before {
-  top: -.5rem;
-  left: -.5rem;
+  top: -.55rem;
+  left: -.55rem;
   width: .77rem;
   height: .77rem;
   border-style: dashed;
   border-width: .12rem;
-  transform: scale(.9) rotate(90deg) translate(2%, -3%);
+  transform: scale(.9) rotate(90deg) translate(4%, -3%);
 }
 
 .stop-icon {
@@ -889,8 +887,11 @@ button.close {
   border-width: 0 .15rem 0 0;
 }
 
-.black-square { top: -.1rem; left: .02rem; transform: scale(1.7); }
-.black-circle { top: -.05rem; left: .01rem; transform: scale(2.4); }
+.mirror .streamurl,
+.mirror .streamurl:focus {
+  cursor: pointer;
+  background: #636363;
+}
 
 
 @media (orientation: portrait) {
@@ -950,6 +951,9 @@ button.close {
   .top button .settings-icon {
     left: -.3rem;
   }
+  .bottom {
+    padding-top: 1rem;
+  }
   .bottom > div,
   .bottom > div > div {
     width: auto;
@@ -962,7 +966,6 @@ button.close {
   }
   .digits {
     float: none;
-    margin-top: 1rem;
     margin-left: -1.5rem;
   }
   .display {
