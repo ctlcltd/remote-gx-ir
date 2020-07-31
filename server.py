@@ -2,7 +2,7 @@
 #  remote-gx-ir/server.py
 #  
 #  @author Leonardo Laureti <https://loltgt.ga>
-#  @version 2020-07-29
+#  @version 2020-07-31
 #  @license MIT License
 #  
 
@@ -15,20 +15,58 @@ from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 from ftplib import FTP
 import time
+import threading
+import sys
+import queue
 import subprocess
+
+
+# A subclass of threading.Thread, with a kill() method.
+# @link http://mail.python.org/pipermail/python-list/2004-May/281943.html
+class KThread(threading.Thread):
+	def __init__(self, *args, **keywords):
+		threading.Thread.__init__(self, *args, **keywords)
+		self.killed = False
+
+	def start(self):
+		# Start the thread.
+		self.__run_backup = self.run
+		self.run = self.__run		# Force the Thread to install our trace.
+		threading.Thread.start(self)
+
+	def __run(self):
+		# Hacked run function, which installs the trace.
+		sys.settrace(self.globaltrace)
+		self.__run_backup()
+		self.run = self.__run_backup
+
+	def globaltrace(self, frame, why, arg):
+		if why == 'call':
+			return self.localtrace
+		else:
+			return None
+
+	def localtrace(self, frame, why, arg):
+		if self.killed:
+			if why == 'line':
+				raise SystemExit()
+		return self.localtrace
+
+	def kill(self):
+		self.killed = True
 
 
 def command(uri):
 	print('command()', uri)
 
-	url = 'http://' + config['WEBIF']['HOST'] + '/' + uri
+	url = 'http://' + config['WEBIF']['WEBIF_HOST'] + '/' + uri
 
 	try:
 		request = urllib.request.urlopen(url, timeout=2)
 		mimetype = request.info()['Content-Type']
 		data = request.read()
 	except (urllib.error.HTTPError, urllib.error.URLError) as err:
-		print('command()', 'urllib.error', err)
+		print('command()', 'error: urllib.error', err)
 
 		return False
 
@@ -37,28 +75,36 @@ def command(uri):
 def chlist(uri):
 	print('chlist()', uri)
 
+	def ftpquit(ftp):
+		if not ftp:
+			return
+
+		ftpquit = ftp.quit()
+
+		print('chlist()', 'ftp', ftpquit)	
+
 	ftp = FTP()
-	ftpconnect = ftp.connect(host=config['FTP']['HOST'], port=int(config['FTP']['PORT']))
-	ftplogin = ftp.login(user=config['FTP']['USER'], passwd=config['FTP']['PASS'])
+	ftpconnect = ftp.connect(host=config['FTP']['FTP_HOST'], port=int(config['FTP']['FTP_PORT']))
+	ftplogin = ftp.login(user=config['FTP']['FTP_USER'], passwd=config['FTP']['FTP_PASS'])
 
 	print('chlist()', 'ftp', ftp.getwelcome())
 
 	channel_list = {}
 
 	if ftpconnect.startswith('220') and ftplogin.startswith('230'):
-		dircwd = config['E2']['E2ROOT'] + '/' + config['E2']['E2DB']
+		dircwd = config['E2']['E2_ROOT'] + '/' + config['E2']['E2_LAMEDB']
 		reader = BytesIO()
 		ftp.retrbinary('RETR ' + dircwd, reader.write)
 		lamedb = reader.getvalue()
 
-		dircwd = config['E2']['E2ROOT'] + '/' + config['E2']['E2UB']
+		dircwd = config['E2']['E2_ROOT'] + '/' + config['E2']['E2_USERBOUQUET_TV']
 		reader = BytesIO()
 		ftp.retrbinary('RETR ' + dircwd, reader.write)
 		userbouquet = reader.getvalue()
 	else:
-		ftp.quit()
+		ftpquit()
 
-		print('chlist()', 'ftp error', ftpconnect, ftplogin)
+		print('chlist()', 'error: ftp', ftpconnect, ftplogin)
 
 		return False
 
@@ -117,26 +163,119 @@ def chlist(uri):
 			channel_list[chid]['num'] = index
 			channel_list[chid]['name'] = dlist[chid]
 
-	ftpquit = ftp.quit()
-
-	print('chlist()', 'ftp', ftpquit)
+	ftpquit(ftp)
 
 	return {'data': json.dumps(channel_list).encode('utf-8'), 'headers': {'Content-Type': 'application/json'}}
 
 def mirror(uri):
 	print('mirror()', uri)
 
-	if int(config['MIRROR']['STREAM']) and 'stream' in globals():
-		print('mirror()', 'streaming', 'kill()')
+	def stream(srcurl, streamurl, cachefile):
+		print('mirror()', 'stream()')
 
-		globals()['stream'].kill()
+		time.sleep(int(config['MIRROR']['STREAM_START_DELAY']))
+
+		if not subprocess.getstatusoutput('ffmpeg')[0]:
+			print('mirror()', 'stream()', 'error: missing "ffmpeg"')
+
+			return
+
+		streampipe  = 'ffmpeg'
+		streampipe += ' -fflags +discardcorrupt'
+		# streampipe += ' -fflags +discardcorrupt+fastseek+nobuffer'
+		streampipe += ' -stream_loop ' + config['MIRROR']['STREAM_LOOP']
+ß		streampipe += ' -sseof ' + config['MIRROR']['STREAM_SEEK_EOF']
+		streampipe += ' -re'
+
+		if int(config['MIRROR']['CACHE']) and cachefile:
+			streampipe += ' -i ' + cachefile
+		else:
+			# streampipe += ' -ftp-password ' + config['FTP']['FTP_PASS']
+			streampipe += ' -i ' + srcurl.replace('@', ':' + config['FTP']['FTP_PASS'] + '@')
+
+		streampipe += ' -bufsize ' + config['MIRROR']['STREAM_BUFSIZE']
+		streampipe += ' -c copy'
+		streampipe += ' -f rtp_mpegts ' + streamurl
+
+		stream = subprocess.Popen(streampipe.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+
+		if stream.stdout:
+			print('mirror()', 'streaming at', config['MIRROR']['STREAM_HOST'] + ':' + config['MIRROR']['STREAM_PORT'])
+
+			count = 0
+
+			for line in stream.stdout:
+				count += 1
+
+				print(line)
+
+				if line == 'Press [q] to stop, [?] for help\n':
+					count = 149
+				elif count == 150:
+					break
+		else:
+			print('mirror()', 'stream()', 'streaming failed')
+
+	def ftpretrievechunked(ftp, source, cache):
+		print('mirror()', 'ftpretrievechunked()')
+
+		q = queue.Queue()
+
+		def ftpthreadretry(start=None):
+			ftp.retrbinary('RETR ' + source, callback=q.put, rest=start)
+			q.put(None)
+
+		ftp_thread = threading.Thread(target=ftpthreadretry)
+		ftp_thread.start()
+
+		with open(cache, 'wb') as output:
+			size = 0
+			last = 0
+
+			while True:
+				chunk = q.get()
+				size = output.tell()
+
+				if chunk is not None:
+					output.write(chunk)
+				elif not size == last:
+					time.sleep(int(config['MIRROR']['CACHE_RETRY_DELAY']))
+
+					print('mirror()', 'ftpretrievechunked()', 'REST', size)
+
+					ftpthreadretry(size)
+
+					last = output.tell()
+				else:
+					print('mirror()', 'ftpretrievechunked()', 'END', size, last)
+
+					return
+
+	def ftpquit(ftp):
+		if not ftp:
+			return
+
+		ftpquit = ftp.quit()
+
+		print('mirror()', 'ftpquit()', ftpquit)
+
+	if 'mirror:threads' in globals():
+		print('mirror()', 'kill previous threads')
+
+		if 'cache' in globals()['mirror:threads']:
+			globals()['mirror:threads']['cache'].kill()
+
+		if 'stream' in globals()['mirror:threads']:
+			globals()['mirror:threads']['stream'].kill()
+
+			subprocess.run(['killall', 'ffmpeg'])
 
 	if uri == 'close':
 		return {'data': b'OK'}
 
 	ftp = FTP()
-	ftpconnect = ftp.connect(host=config['FTP']['HOST'], port=int(config['FTP']['PORT']))
-	ftplogin = ftp.login(user=config['FTP']['USER'], passwd=config['FTP']['PASS'])
+	ftpconnect = ftp.connect(host=config['FTP']['FTP_HOST'], port=int(config['FTP']['FTP_PORT']))
+	ftplogin = ftp.login(user=config['FTP']['FTP_USER'], passwd=config['FTP']['FTP_PASS'])
 
 	print('mirror()', 'ftp', ftp.getwelcome())
 
@@ -156,60 +295,45 @@ def mirror(uri):
 					dirlist = ftp.nlst(dirlist[0])
 
 					if dirlist:
-						srcurl = 'ftp://' + config['FTP']['USER'] + '@' + config['FTP']['HOST']
-						srcurl += str(dirlist[0])
-	else:
-		ftp.quit()
+						filesrc = str(dirlist[0])
 
-		print('mirror()', 'ftp error', ftpconnect, ftplogin)
+						srcurl = 'ftp://' + config['FTP']['FTP_USER'] + '@' + config['FTP']['FTP_HOST']
+						srcurl += filesrc
+	else:
+		ftpquit()
+
+		print('mirror()', 'error: ftp', ftpconnect, ftplogin)
 
 		return False
-
-	ftpquit = ftp.quit()
-
-	print('mirror()', 'ftp', ftpquit)
 
 	mirror = {}
 
 	if srcurl:
 		mirror['srcurl'] = srcurl
 
-		streamurl = 'rtp://' + config['MIRROR']['HOST'] + ':' + config['MIRROR']['PORT']
+		globals()['mirror:threads'] = {}
 
-		mirror['streamurl'] = streamurl
+		if int(config['MIRROR']['CACHE']):
+			cachefile = config['MIRROR']['CACHE_FILE']
 
-		if int(config['MIRROR']['STREAM']) and subprocess.getstatusoutput('ffmpeg')[0]:
-			time.sleep(int(config['MIRROR']['DELAY']))
+			cache_thread = KThread(target=ftpretrievechunked, args=[ftp, filesrc, cachefile])
+			cache_thread.start()
 
-			streampipe  = 'ffmpeg'
-			streampipe += ' -re'
-			streampipe += ' -ftp-password ' + config['FTP']['PASS']
-			streampipe += ' -i ' + srcurl
-			# streampipe += ' -sseof -99'
-			streampipe += ' -vcodec copy'
-			streampipe += ' -acodec copy'
-			streampipe += ' -f rtp_mpegts ' + streamurl
+			globals()['mirror:threads']['cache'] = cache_thread
+		else:
+			ftpquit()
 
-			stream = subprocess.Popen(streampipe.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+		if int(config['MIRROR']['STREAM']):
+			streamurl = 'rtp://' + config['MIRROR']['STREAM_HOST'] + ':' + config['MIRROR']['STREAM_PORT']
 
-			if stream.stdout:
-				print('mirror()', 'streaming at', config['MIRROR']['HOST'] + ':' + config['MIRROR']['PORT'])
-	
-				count = 0
+			mirror['streamurl'] = streamurl
 
-				for line in stream.stdout:
-					count += 1
+			stream_thread = KThread(target=stream, args=[srcurl, streamurl, cachefile])
+			stream_thread.start()
 
-					print(line)
+			globals()['mirror:threads']['stream'] = stream_thread
 
-					if count == 100:
-						break
-
-				mirror['streampid'] = stream.pid
-
-				globals()['stream'] = stream
-			else:
-				print('mirror()', 'streaming failed')
+	# ftpquit()
 
 	return {'data': json.dumps(mirror).encode('utf-8'), 'headers': {'Content-Type': 'application/json'}}
 
@@ -253,11 +377,11 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def run(server_class=TCPServer, handler_class=Handler):
-	server_host = config['SERVER']['HOST']
-	server_port = int(config['SERVER']['PORT'])
+	server_host = config['SERVER']['SERVER_HOST']
+	server_port = int(config['SERVER']['SERVER_PORT'])
 	server = server_class((server_host, server_port), handler_class)
 
-	print('run()', 'serving at', config['SERVER']['HOST'] + ':' + config['SERVER']['PORT'])
+	print('run()', 'serving at', config['SERVER']['SERVER_HOST'] + ':' + config['SERVER']['SERVER_PORT'])
 
 	try:
 		server.serve_forever()
