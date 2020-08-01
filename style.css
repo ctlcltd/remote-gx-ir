@@ -2,7 +2,7 @@
  * remote-gx-ir/style.css
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-07-31
+ * @version 2020-08-01
  * @license MIT License
  */
 
@@ -107,6 +107,9 @@ body {
 .table > table {
   width: 100%;
 }
+.form fieldset:last-child {
+  padding: 1.5rem 0;
+}
 .table.scrollable,
 .form.scrollable {
   position: relative;
@@ -116,10 +119,12 @@ body {
   height: 100%;
 }
 .table.scrollable thead th {
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
 }
 .form.scrollable fieldset:last-child {
+  position: -webkit-sticky;
   position: sticky;
   bottom: 0;
 }
@@ -131,6 +136,17 @@ body {
 }
 .table.clickable tbody tr:focus {
   background: #181818;
+}
+.form.flex,
+.form.flex > form {
+  height: 100%;
+}
+.form.flex > form {
+  display: flex;
+  flex-direction: column;
+}
+.form.flex fieldset:last-child {
+  margin-top: auto;
 }
 
 p {
@@ -297,6 +313,7 @@ button.close {
 }
 
 .top {
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   background: #202020;
@@ -565,6 +582,7 @@ button.close {
   z-index: 0;
 }
 .controls > .top {
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 1;

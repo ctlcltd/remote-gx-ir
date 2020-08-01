@@ -2,7 +2,7 @@
 #  remote-gx-ir/server.py
 #  
 #  @author Leonardo Laureti <https://loltgt.ga>
-#  @version 2020-07-31
+#  @version 2020-08-01
 #  @license MIT License
 #  
 
@@ -22,7 +22,7 @@ import subprocess
 
 
 # A subclass of threading.Thread, with a kill() method.
-# @link http://mail.python.org/pipermail/python-list/2004-May/281943.html
+# @link http://mail.python.org/pipermail/python-list/2004-May/281943.html
 class KThread(threading.Thread):
 	def __init__(self, *args, **keywords):
 		threading.Thread.__init__(self, *args, **keywords)
@@ -108,7 +108,7 @@ def chlist(uri):
 
 		return False
 
-	dlist = {}
+	channel_list['db'] = {}
 	write = False
 	count = 0
 	chid = ''
@@ -130,18 +130,21 @@ def chlist(uri):
 				chid = line[:-5].upper().split(':')
 				chid = chid[0].lstrip('0') + ':' + chid[2].lstrip('0') + ':' + chid[3].lstrip('0') + ':' + chid[1].lstrip('0')
 			elif count == 2:
-				dlist[chid] = line
+
+				channel_list['db'][chid] = line
 			elif count == 3:
 				count = 0
 				chid = ''
 
-	dbouquet = []
+	ubname = ''
+	ubouquet = []
 	write = False
 
 	for line in userbouquet.splitlines():
 		line = line.decode('utf-8')
 
 		if not write and line.startswith('#NAME'):
+			name = line[6:]
 			write = True
 			continue
 		elif write and line.startswith('#SORT'):
@@ -151,17 +154,19 @@ def chlist(uri):
 		if write:
 			chid = line[9:-15].split(':')
 			chid = chid[3] + ':' + chid[4] + ':' + chid[5] + ':' + chid[6]
-			dbouquet.append(chid)
+			ubouquet.append(chid)
+
+	channel_list['tv:1'] = {'name': name, 'list': {}}
 
 	index = 0;
 
-	for chid in dbouquet:
+	for chid in ubouquet:
 		index += 1
 
-		if chid in dlist:
-			channel_list[chid] = {}
-			channel_list[chid]['num'] = index
-			channel_list[chid]['name'] = dlist[chid]
+		if chid in channel_list['db']:
+			channel_list['tv:1']['list'][chid] = {}
+			channel_list['tv:1']['list'][chid]['num'] = index
+			channel_list['tv:1']['list'][chid]['name'] = channel_list['db'][chid]
 
 	ftpquit(ftp)
 
@@ -184,14 +189,13 @@ def mirror(uri):
 		streampipe += ' -fflags +discardcorrupt'
 		# streampipe += ' -fflags +discardcorrupt+fastseek+nobuffer'
 		streampipe += ' -stream_loop ' + config['MIRROR']['STREAM_LOOP']
-ß		streampipe += ' -sseof ' + config['MIRROR']['STREAM_SEEK_EOF']
+		streampipe += ' -sseof ' + config['MIRROR']['STREAM_SEEK_EOF']
 		streampipe += ' -re'
 
 		if int(config['MIRROR']['CACHE']) and cachefile:
 			streampipe += ' -i ' + cachefile
 		else:
-			# streampipe += ' -ftp-password ' + config['FTP']['FTP_PASS']
-			streampipe += ' -i ' + srcurl.replace('@', ':' + config['FTP']['FTP_PASS'] + '@')
+			streampipe += ' -i ' + srcurl
 
 		streampipe += ' -bufsize ' + config['MIRROR']['STREAM_BUFSIZE']
 		streampipe += ' -c copy'
@@ -268,18 +272,24 @@ def mirror(uri):
 		if 'stream' in globals()['mirror:threads']:
 			globals()['mirror:threads']['stream'].kill()
 
-			subprocess.run(['killall', 'ffmpeg'])
+			ffmpeg_pid = subprocess.run(['pgrep', 'ffmpeg'])
+
+			if ffmpeg_pid.stdout:
+				subprocess.run(['kill', str(ffmpeg_pid)])
+			else:
+				subprocess.run(['killall', 'ffmpeg'])
 
 	if uri == 'close':
 		return {'data': b'OK'}
+
+	srcurl = ''
+	ftpurl = ''
 
 	ftp = FTP()
 	ftpconnect = ftp.connect(host=config['FTP']['FTP_HOST'], port=int(config['FTP']['FTP_PORT']))
 	ftplogin = ftp.login(user=config['FTP']['FTP_USER'], passwd=config['FTP']['FTP_PASS'])
 
 	print('mirror()', 'ftp', ftp.getwelcome())
-
-	mirror = {}
 
 	if ftpconnect.startswith('220') and ftplogin.startswith('230'):
 		dircwd = '/../..' + config['MIRROR']['DRIVE'].rstrip('/')
@@ -297,8 +307,8 @@ def mirror(uri):
 					if dirlist:
 						filesrc = str(dirlist[0])
 
-						srcurl = 'ftp://' + config['FTP']['FTP_USER'] + '@' + config['FTP']['FTP_HOST']
-						srcurl += filesrc
+						ftpurl = 'ftp://' + config['FTP']['FTP_USER'] + '@' + config['FTP']['FTP_HOST']
+						ftpurl += filesrc
 	else:
 		ftpquit()
 
@@ -308,9 +318,12 @@ def mirror(uri):
 
 	mirror = {}
 
-	if srcurl:
-		mirror['srcurl'] = srcurl
+	if ftpurl:
+		mirror['ftpurl'] = ftpurl
 
+		srcurl = ftpurl.replace('@', ':' + config['FTP']['FTP_PASS'] + '@')
+
+	if srcurl:
 		globals()['mirror:threads'] = {}
 
 		if int(config['MIRROR']['CACHE']):

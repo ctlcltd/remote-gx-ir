@@ -143,11 +143,15 @@
   <div class="overlay-top">
     <button class="close" onclick="ir.mirror(arguments[0], true)" title="CLOSE">&times;</button>
   </div>
-  <div class="form">
+  <div class="form flex">
     <form action>
-      <fieldset id="src">
-        <label for="srcurl">Source URL</label>
-        <input class="srcurl" id="srcurl" type="text" readonly>
+      <fieldset id="ftp" hidden>
+        <label for="ftpurl">FTP URL</label>
+        <input class="ftpurl" id="ftpurl" type="text" readonly>
+      </fieldset>
+      <fieldset id="upnp" hidden>
+        <label for="upnpurl">uPnP URL</label>
+        <input class="upnpurl" id="upnpurl" type="text" readonly>
       </fieldset>
       <fieldset id="stream" hidden>
         <label>Stream URL</label>
@@ -164,7 +168,7 @@
   <div class="overlay-top">
     <button class="close" onclick="ir.settings(arguments[0], true)" title="CLOSE">&times;</button>
   </div>
-  <div class="form scrollable">
+  <div class="form scrollable flex">
     <form action>
       <fieldset>
         <button type="submit">SAVE</button>

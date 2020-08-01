@@ -2,7 +2,7 @@
  * remote-gx-ir/script.js
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-07-29
+ * @version 2020-08-01
  * @license MIT License
  */
 
@@ -55,7 +55,7 @@ function xmlToJson(xml) {
 function remote() {
   this.defaults = {
     'address': 'http://localhost:8080/service',
-    'refresh': '0'
+    'refresh': '10000'
   };
 
   this.storage = window.sessionStorage;
@@ -199,8 +199,8 @@ remote.prototype.currentChannel = function() {
 
       const chid = obj.e2servicelist.e2service.e2servicereference.substr(6, (obj.e2servicelist.e2service.e2servicereference.length - 13));
 
-      if (chlist[chid]) {
-        chnum.innerText = chlist[chid].num;
+      if (chlist['tv:1']['list'][chid]) {
+        chnum.innerText = chlist['tv:1']['list'][chid].num;
       } else {
         chnum.innerText = '?';
       }
@@ -514,7 +514,7 @@ remote.prototype.chlist = function(close) {
       if (self.storage.chlist) {
         const chlist = JSON.parse(self.storage.chlist);
 
-        render(chlist);
+        render(chlist['tv:1']);
       } else {
         throw 0;
       }
@@ -532,13 +532,13 @@ remote.prototype.chlist = function(close) {
 
     const tr_tpl = tbody.firstElementChild;
 
-    for (const chid in data) {
+    for (const chid in data['list']) {
       const tr = tr_tpl.cloneNode(true);
 
-      tr.firstElementChild.innerText = data[chid].num;
-      tr.lastElementChild.innerText = data[chid].name;
+      tr.firstElementChild.innerText = data['list'][chid].num;
+      tr.lastElementChild.innerText = data['list'][chid].name;
 
-      tr.dataset.chnum = data[chid].num;
+      tr.dataset.chnum = data['list'][chid].num;
       tr.onclick = channelChange;
       tr.removeAttribute('hidden');
 
@@ -557,7 +557,7 @@ remote.prototype.chlist = function(close) {
 
     console.info('chlist()', 'channelChange()', this.dataset.chnum);
 
-    let cmds = this.dataset.chnum.split('').map(function(num) { return 'num_' + num; });
+    let cmds = this.dataset.chnum.split('').map(function(num) { return 'num_' + num; });
 
     self.routine.apply(self, cmds);
 
@@ -636,29 +636,22 @@ remote.prototype.mirror = function(close) {
     self.stream.removeAttribute('hidden');
     self.stream.classList.add('in');
 
-    render();
+    if (! form.rendered) {
+      render();
+      start();
+    }
 
     setTimeout(function() {
       self.stream.classList.remove('in');
 
       this.clearTimeout();
     }, 50);
-
-    setTimeout(function() {
-      const mirror = self.request('mirror');
-
-      mirror.then(stream).catch(self.error);
-
-      this.clearTimeout();
-    }, 3e2);
   }
 
   function hide() {
     console.log('mirror()', 'hide()');
 
     self.stream.classList.add('out');
-
-    clear();
 
     setTimeout(function() {
       self.stream.setAttribute('hidden', '');
@@ -675,27 +668,37 @@ remote.prototype.mirror = function(close) {
 
     form.lastElementChild.firstElementChild.onclick = copy;
     form.lastElementChild.lastElementChild.onclick = stop;
+
+    form.rendered = true;
   }
 
   function clear() {
     console.log('mirror()', 'clear()');
 
+    form.querySelector('#ftp').setAttribute('hidden', '');
+    form.querySelector('#upnp').setAttribute('hidden', '');
     form.querySelector('#stream').setAttribute('hidden', '');
 
-    form.querySelector('#srcurl').value = '';
+    form.reset();
 
-    form.querySelector('#streamurl').value = '';
     form.querySelector('#streamurl').onclick = null;
-
     form.lastElementChild.firstElementChild.onclick = null;
     form.lastElementChild.lastElementChild.onclick = null;
+
+    form.rendered = false;
   }
 
   function links(data) {
     console.log('mirror()', 'links()', data);
 
-    form.querySelector('#srcurl').value = data.srcurl;
-
+    if ('ftpurl' in data) {
+      form.querySelector('#ftp').removeAttribute('hidden');
+      form.querySelector('#ftpurl').value = data.ftpurl;
+    }
+    if ('upnpurl' in data) {
+      form.querySelector('#upnp').removeAttribute('hidden');
+      form.querySelector('#upnpurl').value = data.ftpurl;
+    }
     if ('streamurl' in data) {
       form.querySelector('#stream').removeAttribute('hidden');
       form.querySelector('#streamurl').value = data.streamurl;
@@ -737,9 +740,29 @@ remote.prototype.mirror = function(close) {
 
     console.log('mirror()', 'open()');
 
-    if (form.querySelector('#streamurl').value) {
-      window.open(form.querySelector('#streamurl').value);
+    if (this.value) {
+      window.open(this.value);
     }
+  }
+
+  function start() {
+    console.log('mirror()', 'start()');
+
+    self.routine('playpause');
+
+    setTimeout(function() {
+      self.control('stop');
+
+      this.clearTimeout();
+    }, 100);
+
+    setTimeout(function() {
+      const mirror = self.request('mirror');
+
+      mirror.then(stream).catch(self.error);
+
+      this.clearTimeout();
+    }, 3e2);
   }
 
   function stop(event) {
@@ -763,7 +786,7 @@ remote.prototype.mirror = function(close) {
 
     const mirror = self.request('mirror', '/close');
 
-    mirror.then(hide).catch(self.error);
+    mirror.then(clear).catch(self.error);
 
     this.blur();
   }
@@ -773,14 +796,6 @@ remote.prototype.mirror = function(close) {
   }
 
   if (this.setup.hasAttribute('hidden')) {
-    this.routine('playpause');
-
-    setTimeout(function() {
-      self.control('stop');
-
-      this.clearTimeout();
-    }, 100);
-
     show();
   } else {
     hide();
@@ -914,9 +929,9 @@ remote.prototype.session = function() {
           self.update();
         }
 
-        // if (! self.tick && self.rs.refresh != '0') {
-        //   self.tick = setInterval(self.status.bind(self), 3e4);
-        // }
+        if (! self.tick && self.rs.refresh != '0') {
+          self.tick = setInterval(self.status.bind(self), parseInt(self.rs.refresh));
+        }
       } else {
         self.storage.setItem('connected', 0);
         self.connect(false);
