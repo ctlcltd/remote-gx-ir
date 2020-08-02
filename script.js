@@ -2,7 +2,7 @@
  * remote-gx-ir/script.js
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-01
+ * @version 2020-08-02
  * @license MIT License
  */
 
@@ -55,7 +55,8 @@ function xmlToJson(xml) {
 function remote() {
   this.defaults = {
     'address': 'http://localhost:8080/service',
-    'refresh': '10000'
+    'refresh': '100000',
+    'fav': 'tv:1'
   };
 
   this.storage = window.sessionStorage;
@@ -193,14 +194,19 @@ remote.prototype.currentChannel = function() {
 
     try {
       const obj = self.parser(xhr.response);
+      const fav = self.storage.currentFav;
       const chlist = JSON.parse(self.storage.chlist);
 
       chname.innerText = obj.e2servicelist.e2service.e2servicename;
 
       const chid = obj.e2servicelist.e2service.e2servicereference.substr(6, (obj.e2servicelist.e2service.e2servicereference.length - 13));
 
-      if (chlist['tv:1']['list'][chid]) {
-        chnum.innerText = chlist['tv:1']['list'][chid].num;
+      self.storage.setItem('currentChannel', chid);
+
+      if (fav === 'lamedb' && chlist['lamedb'][chid]) {
+        chnum.innerText = chlist['lamedb'][chid].num;
+      } else if (chlist[fav]['list'][chid]) {
+        chnum.innerText = chlist[fav]['list'][chid].num;
       } else {
         chnum.innerText = '?';
       }
@@ -473,6 +479,8 @@ remote.prototype.connect = function(connected) {
 
 remote.prototype.chlist = function(close) {
   const self = this;
+  const form = this.channels.querySelector('form');
+  const select = form.querySelector('#fav');
   const table = this.channels.querySelector('table');
   const thead = table.querySelector('thead');
   const tbody = table.querySelector('tbody');
@@ -503,18 +511,18 @@ remote.prototype.chlist = function(close) {
     }, 50);
   }
 
-  function list() {
-    console.log('chlist()', 'list()');
-
-    if (table.rendered) {
-      return;
-    }
+  function list(fav) {
+    console.log('chlist()', 'list()', fav);
 
     try {
       if (self.storage.chlist) {
         const chlist = JSON.parse(self.storage.chlist);
 
-        render(chlist['tv:1']);
+        if (! form.rendered) {
+          render_form(chlist);
+        } else if (fav && fav in chlist) {
+          render_table(chlist[fav]);
+        }
       } else {
         throw 0;
       }
@@ -525,12 +533,54 @@ remote.prototype.chlist = function(close) {
     }
   }
 
-  function render(data) {
-    console.log('chlist()', 'render()');
+  function render_form(data) {
+    console.log('chlist()', 'render_form()');
 
-    var i = 0;
+    const fav = self.storage.currentFav;
+    var optgroup, last_group;
+
+    for (const idx in data) {
+      if (Object.keys(data[idx]['list']).length < 2) {
+        continue;
+      }
+
+      let current_group = idx === 'lamedb' ? idx : idx.split(':')[0];
+
+      if (current_group != last_group) {
+        optgroup = document.createElement('optgroup');
+        optgroup.setAttribute('label', current_group.toUpperCase());
+
+        select.append(optgroup);
+      }
+
+      const option = document.createElement('option');
+      option.value = idx;
+      option.innerText = data[idx]['name'];
+
+      optgroup.append(option);
+
+      last_group = current_group;
+    }
+
+    select.onchange = listChange;
+
+    render_table(data[fav]);
+
+    form.rendered = true;
+  }
+
+  function render_table(data) {
+    console.log('chlist()', 'render_table()');
 
     const tr_tpl = tbody.firstElementChild;
+
+    if (table.rendered) {
+      const tr = tr_tpl.cloneNode(true);
+      while (tbody.firstChild && tbody.removeChild(tbody.firstChild));
+      tbody.append(tr);
+    }
+
+    var i = 0;
 
     for (const chid in data['list']) {
       const tr = tr_tpl.cloneNode(true);
@@ -546,8 +596,6 @@ remote.prototype.chlist = function(close) {
 
       i++;
     }
-
-    tr_tpl.remove();
 
     table.rendered = true;
   }
@@ -566,6 +614,16 @@ remote.prototype.chlist = function(close) {
 
       this.clearTimeout();
     }, 100);
+  }
+
+  function listChange(event) {
+    event.preventDefault();
+
+    console.info('chlist()', 'listChange()', this.value);
+
+    self.storage.setItem('currentFav', this.value);
+
+    list(this.value);
   }
 
   if (close) {
@@ -889,9 +947,9 @@ remote.prototype.settings = function(close) {
   function save() {
     console.log('settings()', 'save()');
 
-    var data = {};
+    // var data = {};
 
-    self.rs = data;
+    // self.rs = data;
   }
 
   function reset() {
@@ -927,6 +985,10 @@ remote.prototype.session = function() {
           self.status();
         } else {
           self.update();
+        }
+
+        if (! self.storage.currentFav) {
+          self.storage.setItem('currentFav', self.rs.fav);
         }
 
         if (! self.tick && self.rs.refresh != '0') {

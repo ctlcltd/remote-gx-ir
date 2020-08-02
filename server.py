@@ -2,14 +2,16 @@
 #  remote-gx-ir/server.py
 #  
 #  @author Leonardo Laureti <https://loltgt.ga>
-#  @version 2020-08-01
+#  @version 2020-08-02
 #  @license MIT License
 #  
 
 import configparser
-import os.path
+import os
+import re
 import urllib.request, urllib.error
 import json
+import html
 from io import BytesIO
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
@@ -56,124 +58,385 @@ class KThread(threading.Thread):
 		self.killed = True
 
 
+class FTPcom(FTP):
+	def __init__(self, *args, **keywords):
+		FTP.__init__(self, *args, **keywords)
+
+	def open(self):
+		connect = self.connect(host=config['FTP']['HOST'], port=int(config['FTP']['PORT']))
+		login = self.login(user=config['FTP']['USER'], passwd=config['FTP']['PASS'])
+
+		print('FTPcom', 'open()', self.getwelcome())
+
+		if connect.startswith('220') and login.startswith('230'):
+			return self
+		else:
+			self.close()
+
+			raise Exception('FTPcom', 'could not connect', [connect, login])
+
+	def retrieve(self, source, outfile, close=False, read=False):
+		print('FTPcom', 'retrieve()', 'START')
+
+		q = queue.Queue()
+
+		def retry(start=None):
+			self.retrbinary('RETR ' + source, callback=q.put, rest=start)
+			q.put(None)
+
+		threading.Thread(target=retry).start()
+
+		with open(outfile, 'wb') as output:
+			while True:
+				chunk = q.get()
+
+				if chunk is not None:
+					print('FTPcom', 'retrieve()', 'REST')
+
+					output.write(chunk)
+				else:
+					print('FTPcom', 'retrieve()', 'END')
+
+					if close:
+						self.close()
+
+					break
+
+		if read:
+			with open(outfile, 'rb') as input:
+				return input.read()
+
+	def retrievechunked(self, source, outfile, retry_delay, close=False, read=False):
+		print('FTPcom', 'retrievechunked()', 'START')
+
+		q = queue.Queue()
+
+		def retry(start=None):
+			self.retrbinary('RETR ' + source, callback=q.put, rest=start)
+			q.put(None)
+
+		threading.Thread(target=retry).start()
+
+		with open(outfile, 'wb') as output:
+			size = 0
+			last = 0
+
+			while True:
+				chunk = q.get()
+				size = output.tell()
+
+				if chunk is not None:
+					output.write(chunk)
+				elif not size == last:
+					time.sleep(retry_delay)
+
+					print('FTPcom', 'retrievechunked()', 'REST', size)
+
+					retry(size)
+
+					last = output.tell()
+				else:
+					print('FTPcom', 'retrievechunked()', 'END', size, last)
+
+					if close:
+						self.close()
+
+					break
+
+		if read:
+			with open(outfile, 'rb') as input:
+				return input.read()
+
+	def close(self):
+		print('FTPcom', 'close()', self.quit())
+
+
+def to_JSON(obj):
+	return json.dumps(obj, separators=(',', ':')).encode('utf-8')
+
+
+
 def command(uri):
 	print('command()', uri)
 
-	url = 'http://' + config['WEBIF']['WEBIF_HOST'] + '/' + uri
+	url = 'http://' + config['WEBIF']['HOST'] + '/' + uri
 
 	try:
-		request = urllib.request.urlopen(url, timeout=2)
+		request = urllib.request.urlopen(url, timeout=int(config['WEBIF']['TIMEOUT']))
 		mimetype = request.info()['Content-Type']
 		data = request.read()
 	except (urllib.error.HTTPError, urllib.error.URLError) as err:
-		print('command()', 'error: urllib.error', err)
+		print('command()', 'error:', 'urllib.error', err)
 
 		return False
 
 	return {'data': data, 'headers': {'Content-Type': mimetype}}
 
+
 def chlist(uri):
 	print('chlist()', uri)
 
-	def ftpquit(ftp):
-		if not ftp:
-			return
+	def parse_e2db(e2db):
+		print('chlist()', 'parse_e2db()')
 
-		ftpquit = ftp.quit()
+		chlist = {}
+		chlist['lamedb'] = parse_e2db_lamedb(e2db['lamedb'])
 
-		print('chlist()', 'ftp', ftpquit)	
+		bouquets = filter(lambda path: path.startswith('bouquets.'), e2db)
 
-	ftp = FTP()
-	ftpconnect = ftp.connect(host=config['FTP']['FTP_HOST'], port=int(config['FTP']['FTP_PORT']))
-	ftplogin = ftp.login(user=config['FTP']['FTP_USER'], passwd=config['FTP']['FTP_PASS'])
+		for filename in bouquets:
+			db = parse_e2db_bouquet(e2db[filename])
 
-	print('chlist()', 'ftp', ftp.getwelcome())
+			for filename in db['userbouquets']:
+				name = re.match(r'[^.]+.(\d+).(\w+)', filename)
+				idx = name[2] + ':' + name[1]
 
-	channel_list = {}
+				chlist[idx] = parse_e2db_userbouquet(chlist['lamedb']['list'], e2db[filename])
 
-	if ftpconnect.startswith('220') and ftplogin.startswith('230'):
-		dircwd = config['E2']['E2_ROOT'] + '/' + config['E2']['E2_LAMEDB']
-		reader = BytesIO()
-		ftp.retrbinary('RETR ' + dircwd, reader.write)
-		lamedb = reader.getvalue()
+		return chlist
 
-		dircwd = config['E2']['E2_ROOT'] + '/' + config['E2']['E2_USERBOUQUET_TV']
-		reader = BytesIO()
-		ftp.retrbinary('RETR ' + dircwd, reader.write)
-		userbouquet = reader.getvalue()
-	else:
-		ftpquit()
+	def parse_e2db_lamedb(lamedb):
+		print('chlist()', 'parse_e2db_lamedb()')
 
-		print('chlist()', 'error: ftp', ftpconnect, ftplogin)
+		db = {'name': 'ALL', 'list': {}}
+
+		step = False
+		count = 0
+		index = 0
+		chid = ''
+
+		for line in lamedb:
+			if not step and line == 'services':
+				step = True
+				continue
+			elif step and line == 'end':
+				step = False
+				continue
+
+			if step:
+				count += 1
+
+				if count == 1:
+					chid = line[:-5].upper().split(':')
+					chid = chid[0].lstrip('0') + ':' + chid[2].lstrip('0') + ':' + chid[3].lstrip('0') + ':' + chid[1].lstrip('0')
+					index += 1
+				elif count == 2:
+					db['list'][chid] = {}
+					db['list'][chid]['num'] = index
+					db['list'][chid]['name'] = html.escape(line)
+				elif count == 3:
+					count = 0
+					chid = ''
+
+		return db
+
+	def parse_e2db_bouquet(bouquet):
+		bs = {'prefix': '', 'userbouquets': []}
+
+		for line in bouquet:
+			if line.startswith('#SERVICE'):
+				filename = re.search(r'(?:")([^"]+)(?:")', line)[1]
+
+				print(filename)
+
+				bs['userbouquets'].append(filename)
+			elif line.startswith('#NAME'):
+				prefix = line
+
+				bs['name'] = prefix.lower()
+
+		return bs
+
+	def parse_e2db_userbouquet(chlist_lamedb, userbouquet):
+		print('chlist()', 'parse_e2db_userbouquet()')
+
+		ub = {'name': '', 'list': {}}
+		step = False
+		index = 0;
+
+		for line in userbouquet:
+			if step and line.startswith('#SORT'):
+				step = False
+				continue
+			elif not step and line.startswith('#NAME'):
+				ub['name'] = html.escape(line[6:])
+				step = True
+				continue
+
+			if step:
+				index += 1
+
+				chid = line[9:-15].split(':')
+				chid = chid[3] + ':' + chid[4] + ':' + chid[5] + ':' + chid[6]
+
+				if chid in chlist_lamedb:
+					ub['list'][chid] = {}
+					ub['list'][chid]['num'] = index
+					ub['list'][chid]['name'] = chlist_lamedb[chid]['name']
+
+		return ub
+
+	def get_ftpfile(ftp, filename):
+		print('chlist()', 'get_ftpfile()')
+
+		try:
+			reader = BytesIO()
+			ftp.retrbinary('RETR ' + filename, reader.write)
+			return reader.getvalue()
+		except Exception as err:
+			print('chlist()', 'get_ftpfile()', 'error:', err)
+		except:
+			print('chlist()', 'get_ftpfile()', 'error')
+
+	def get_e2db_ftp():
+		print('chlist()', 'get_e2db_ftp()')
+
+		e2db = {}
+
+		try:
+			ftp = FTPcom().open()
+			e2db = update(ftp)
+		except Exception as err:
+			print('chlist()', 'get_e2db_ftp()', 'error:', err)
+		except:
+			print('chlist()', 'get_e2db_ftp()', 'error')
+		#TODO FIX
+		# else:
+		# 	ftp.close()
+
+		return e2db
+
+	def get_e2db_localcache():
+		print('chlist()', 'get_e2db_localcache()')
+
+		e2db = {}
+		e2cache = config['E2']['CACHE_DB'].rstrip('/')
+		dirlist = os.listdir(e2cache)
+
+		for path in dirlist:
+			filename = e2cache + '/' + path
+
+			#TODO
+			#-filter exclude
+			#-filter allowed
+
+			with open(filename, 'rb') as input:
+				e2db[path] = input.read().decode('utf-8').splitlines()
+
+		return e2db
+
+	def update(ftp):
+		print('chlist()', 'update()')
+
+		e2db = {}
+		e2cache = config['E2']['CACHE_DB'].rstrip('/')
+		e2root = config['E2']['ROOT'].rstrip('/')
+		dirlist = ftp.nlst(e2root)
+
+		for path in dirlist:
+			filename = e2root + '/' + path
+
+			#TODO
+			#-filter allowed
+			#--filter exclude
+
+			if int(config['E2']['CACHE']):
+				e2db[path] = ftp.retrieve(filename, e2cache + '/' + path, read=True).decode('utf-8').splitlines()
+			else:
+				e2db[path] = get_ftpfile(ftp, filename).decode('utf-8').splitlines()
+
+		return e2db
+
+	def restore():
+		print('chlist()', 'restore()')
+
+		e2cache = config['E2']['CACHE_DB'].rstrip('/')
+
+		if int(config['E2']['CACHE']):
+			e2db = get_e2db_localcache()
+		else:
+			e2db = get_e2db_ftp()
+
+		chlist = parse_e2db(e2db)
+		chlist = to_JSON(chlist)
+
+		store(chlist)
+
+		return chlist
+
+	def retrieve():
+		print('chlist()', 'retrieve()')
+
+		cachefile = config['E2']['CACHE_FILE']
+
+		if not os.path.isfile(cachefile):
+			return None
+
+		with open(cachefile, 'rb') as input:
+			return input.read()
+
+	def store(cache):
+		print('chlist()', 'store()')
+
+		cachefile = config['E2']['CACHE_FILE']
+
+		with open(cachefile, 'wb') as output:
+			output.write(cache)
+
+	try:
+		if not uri == 'update' and int(config['E2']['CACHE']):
+			chlist = retrieve()
+
+			if not chlist:
+				chlist = restore()
+		else:
+			e2db = get_e2db_ftp()
+
+			chlist = parse_e2db(e2db)
+			chlist = to_JSON(chlist)
+
+			if int(config['E2']['CACHE']):
+				store(chlist)
+	except Exception as err:
+		print('chlist()', 'error:', err)
 
 		return False
 
-	channel_list['db'] = {}
-	write = False
-	count = 0
-	chid = ''
+	print(chlist)
 
-	for line in lamedb.splitlines():
-		line = line.decode('utf-8')
+	return {'data': chlist, 'headers': {'Content-Type': 'application/json'}}
 
-		if not write and line == 'services':
-			write = True
-			continue
-		elif write and line == 'end':
-			write = False
-			continue
-
-		if write:
-			count += 1
-
-			if count == 1:
-				chid = line[:-5].upper().split(':')
-				chid = chid[0].lstrip('0') + ':' + chid[2].lstrip('0') + ':' + chid[3].lstrip('0') + ':' + chid[1].lstrip('0')
-			elif count == 2:
-
-				channel_list['db'][chid] = line
-			elif count == 3:
-				count = 0
-				chid = ''
-
-	ubname = ''
-	ubouquet = []
-	write = False
-
-	for line in userbouquet.splitlines():
-		line = line.decode('utf-8')
-
-		if not write and line.startswith('#NAME'):
-			name = line[6:]
-			write = True
-			continue
-		elif write and line.startswith('#SORT'):
-			write = False
-			continue
-
-		if write:
-			chid = line[9:-15].split(':')
-			chid = chid[3] + ':' + chid[4] + ':' + chid[5] + ':' + chid[6]
-			ubouquet.append(chid)
-
-	channel_list['tv:1'] = {'name': name, 'list': {}}
-
-	index = 0;
-
-	for chid in ubouquet:
-		index += 1
-
-		if chid in channel_list['db']:
-			channel_list['tv:1']['list'][chid] = {}
-			channel_list['tv:1']['list'][chid]['num'] = index
-			channel_list['tv:1']['list'][chid]['name'] = channel_list['db'][chid]
-
-	ftpquit(ftp)
-
-	return {'data': json.dumps(channel_list).encode('utf-8'), 'headers': {'Content-Type': 'application/json'}}
 
 def mirror(uri):
 	print('mirror()', uri)
+
+	def get_ftpsource(ftp):
+		print('mirror()', 'get_ftpsource()')
+
+		dircwd = '/../..' + config['MIRROR']['DRIVE'].rstrip('/')
+		dirlist = ftp.nlst(dircwd)
+
+		if dircwd + '/timeshift' in dirlist:
+			dirlist = ftp.nlst(dircwd + '/timeshift')
+
+			if dirlist:
+				dirlist = ftp.nlst(dirlist[0])
+
+				#TODO
+
+				if dirlist:
+					dirlist = ftp.nlst(dirlist[0])
+
+					if dirlist:
+						return str(dirlist[0])
+
+		return None
+
+	def cache(ftp, src, cachefile, retrydelay):
+		print('mirror()', 'cache()')
+
+		if int(config['MIRROR']['FTP']):
+			ftp.retrievechunked(src, cachefile, retrydelay)
 
 	def stream(srcurl, streamurl, cachefile):
 		print('mirror()', 'stream()')
@@ -220,121 +483,70 @@ def mirror(uri):
 		else:
 			print('mirror()', 'stream()', 'streaming failed')
 
-	def ftpretrievechunked(ftp, source, cache):
-		print('mirror()', 'ftpretrievechunked()')
+	def close():
+		print('mirror()', 'close()')
 
-		q = queue.Queue()
+		suppressthreads()
 
-		def ftpthreadretry(start=None):
-			ftp.retrbinary('RETR ' + source, callback=q.put, rest=start)
-			q.put(None)
-
-		ftp_thread = threading.Thread(target=ftpthreadretry)
-		ftp_thread.start()
-
-		with open(cache, 'wb') as output:
-			size = 0
-			last = 0
-
-			while True:
-				chunk = q.get()
-				size = output.tell()
-
-				if chunk is not None:
-					output.write(chunk)
-				elif not size == last:
-					time.sleep(int(config['MIRROR']['CACHE_RETRY_DELAY']))
-
-					print('mirror()', 'ftpretrievechunked()', 'REST', size)
-
-					ftpthreadretry(size)
-
-					last = output.tell()
-				else:
-					print('mirror()', 'ftpretrievechunked()', 'END', size, last)
-
-					return
-
-	def ftpquit(ftp):
-		if not ftp:
-			return
-
-		ftpquit = ftp.quit()
-
-		print('mirror()', 'ftpquit()', ftpquit)
-
-	if 'mirror:threads' in globals():
-		print('mirror()', 'kill previous threads')
-
-		if 'cache' in globals()['mirror:threads']:
-			globals()['mirror:threads']['cache'].kill()
-
-		if 'stream' in globals()['mirror:threads']:
-			globals()['mirror:threads']['stream'].kill()
-
-			ffmpeg_pid = subprocess.run(['pgrep', 'ffmpeg'])
-
-			if ffmpeg_pid.stdout:
-				subprocess.run(['kill', str(ffmpeg_pid)])
-			else:
-				subprocess.run(['killall', 'ffmpeg'])
-
-	if uri == 'close':
 		return {'data': b'OK'}
 
-	srcurl = ''
-	ftpurl = ''
+	def suppressthreads():
+		if 'mirror:threads' in globals():
+			print('mirror()', 'suppressthreads()')
 
-	ftp = FTP()
-	ftpconnect = ftp.connect(host=config['FTP']['FTP_HOST'], port=int(config['FTP']['FTP_PORT']))
-	ftplogin = ftp.login(user=config['FTP']['FTP_USER'], passwd=config['FTP']['FTP_PASS'])
+			if 'ftp' in globals()['mirror:threads']:
+				globals()['mirror:threads']['ftp'].close()
 
-	print('mirror()', 'ftp', ftp.getwelcome())
+			if 'cache' in globals()['mirror:threads']:
+				globals()['mirror:threads']['cache'].kill()
 
-	if ftpconnect.startswith('220') and ftplogin.startswith('230'):
-		dircwd = '/../..' + config['MIRROR']['DRIVE'].rstrip('/')
-		dirlist = ftp.nlst(dircwd)
+			if 'stream' in globals()['mirror:threads']:
+				globals()['mirror:threads']['stream'].kill()
 
-		if dircwd + '/timeshift' in dirlist:
-			dirlist = ftp.nlst(dircwd + '/timeshift')
+				ffmpeg_pid = subprocess.run(['pgrep', 'ffmpeg'])
 
-			if dirlist:
-				dirlist = ftp.nlst(dirlist[0])
+				#TODO FIX
 
-				if dirlist:
-					dirlist = ftp.nlst(dirlist[0])
+				if ffmpeg_pid.stdout:
+					subprocess.run(['kill', str(ffmpeg_pid)])
+				else:
+					subprocess.run(['killall', 'ffmpeg'])
 
-					if dirlist:
-						filesrc = str(dirlist[0])
+			return
 
-						ftpurl = 'ftp://' + config['FTP']['FTP_USER'] + '@' + config['FTP']['FTP_HOST']
-						ftpurl += filesrc
-	else:
-		ftpquit()
-
-		print('mirror()', 'error: ftp', ftpconnect, ftplogin)
-
-		return False
-
-	mirror = {}
-
-	if ftpurl:
-		mirror['ftpurl'] = ftpurl
-
-		srcurl = ftpurl.replace('@', ':' + config['FTP']['FTP_PASS'] + '@')
-
-	if srcurl:
 		globals()['mirror:threads'] = {}
+
+	try:
+		if uri == 'close':
+			return close()
+
+		suppressthreads()
+
+		mirror = {}
+
+		ftp = None
+		srcurl = ''
+
+		if int(config['MIRROR']['FTP']):
+			ftp = FTPcom().open()
+
+			globals()['mirror:threads']['ftp'] = ftp
+
+			#TODO FIX
+			#src = NoneType
+			src = get_ftpsource(ftp)
+			srcurl = src.replace('@', ':' + config['FTP']['PASS'] + '@')
+
+			mirror['ftpurl'] = 'ftp://' + config['FTP']['USER'] + '@' + config['FTP']['HOST'] + src
 
 		if int(config['MIRROR']['CACHE']):
 			cachefile = config['MIRROR']['CACHE_FILE']
+			retrydelay = int(config['MIRROR']['CACHE_RETRY_DELAY'])
 
-			cache_thread = KThread(target=ftpretrievechunked, args=[ftp, filesrc, cachefile])
+			cache_thread = KThread(target=cache, args=[ftp, src, cachefile, retrydelay])
 			cache_thread.start()
 
 			globals()['mirror:threads']['cache'] = cache_thread
-		else:
-			ftpquit()
 
 		if int(config['MIRROR']['STREAM']):
 			streamurl = 'rtp://' + config['MIRROR']['STREAM_HOST'] + ':' + config['MIRROR']['STREAM_PORT']
@@ -345,10 +557,13 @@ def mirror(uri):
 			stream_thread.start()
 
 			globals()['mirror:threads']['stream'] = stream_thread
+	except Exception as err:
+		print('mirror()', 'error:', err)
 
-	# ftpquit()
+		return False
 
-	return {'data': json.dumps(mirror).encode('utf-8'), 'headers': {'Content-Type': 'application/json'}}
+	return {'data': to_JSON(mirror), 'headers': {'Content-Type': 'application/json'}}
+
 
 class Handler(SimpleHTTPRequestHandler):
 	def service(self):
@@ -389,12 +604,13 @@ class Handler(SimpleHTTPRequestHandler):
 		return SimpleHTTPRequestHandler.do_GET(self)
 
 
+
 def run(server_class=TCPServer, handler_class=Handler):
-	server_host = config['SERVER']['SERVER_HOST']
-	server_port = int(config['SERVER']['SERVER_PORT'])
+	server_host = config['SERVER']['HOST']
+	server_port = int(config['SERVER']['PORT'])
 	server = server_class((server_host, server_port), handler_class)
 
-	print('run()', 'serving at', config['SERVER']['SERVER_HOST'] + ':' + config['SERVER']['SERVER_PORT'])
+	print('run()', 'serving at', config['SERVER']['HOST'] + ':' + config['SERVER']['PORT'])
 
 	try:
 		server.serve_forever()

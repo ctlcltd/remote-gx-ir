@@ -124,19 +124,28 @@
   <div class="overlay-top">
     <button class="close" onclick="ir.chlist(arguments[0], true)" title="CLOSE">&times;</button>
   </div>
-  <div class="table scrollable clickable">
-    <table>
-      <thead>
-        <th>CHNUM</th>
-        <th>CHLIST</th>
-      </thead>
-      <tbody>
-        <tr hidden>
-          <td class="dchnum">?</td>
-          <td class="dchname">CHANNEL</td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="form flex fill">
+    <form>
+      <fieldset>
+        <div class="table scrollable clickable">
+          <table>
+            <thead>
+              <th>CHNUM</th>
+              <th>CHLIST</th>
+            </thead>
+            <tbody>
+              <tr hidden>
+                <td class="dchnum">?</td>
+                <td class="dchname">CHANNEL</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </fieldset>
+      <fieldset>
+        <select id="fav" title="FAV"></select>
+      </fieldset>
+    </form>
   </div>
 </main>
 <main id="mirror" class="mirror view overlay" hidden>

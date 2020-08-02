@@ -2,7 +2,7 @@
  * remote-gx-ir/style.css
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-01
+ * @version 2020-08-02
  * @license MIT License
  */
 
@@ -104,18 +104,16 @@ body {
   overflow-x: scroll;
   -webkit-overflow-scrolling: touch;
 }
-.table > table {
+.table table {
   width: 100%;
-}
-.form fieldset:last-child {
-  padding: 1.5rem 0;
+  height: 100%;
 }
 .table.scrollable,
 .form.scrollable {
   position: relative;
-  height: 90vh;
+  height: calc(100% - 2rem);
 }
-.form.scrollable > form {
+.form.scrollable form {
   height: 100%;
 }
 .table.scrollable thead th {
@@ -137,13 +135,20 @@ body {
 .table.clickable tbody tr:focus {
   background: #181818;
 }
-.form.flex,
-.form.flex > form {
+.form.flex {
+  height: calc(100% - 2rem);
+}
+.form.flex form,
+.form.flex .table.scrollable {
   height: 100%;
 }
-.form.flex > form {
+.form.flex form {
   display: flex;
   flex-direction: column;
+}
+.form.fill fieldset {
+  height: -webkit-fill-available;
+  height: fill-available;
 }
 .form.flex fieldset:last-child {
   margin-top: auto;
@@ -498,7 +503,8 @@ button.close {
 }
 .misc > div {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /*grid-template-columns: repeat(3, 1fr);*/
+  grid-template-columns: repeat(2, 1fr);
   width: fit-content;
   max-height: fit-content;
   margin: auto;
@@ -723,8 +729,14 @@ button.close {
 .signal-strength:before { background: firebrick; }
 .signal-quality:before { background: royalblue; }
 
+.chlist .overlay-top {
+  position: absolute;
+  right: 1.5rem;
+  left: 1.5rem;
+  z-index: 9999;
+}
 .chlist td { font-weight: bold; }
-
+.chlist th:first-child, .chlist td:first-child { max-width: 4rem; }
 
 .arrow {
   position: relative;
@@ -959,6 +971,14 @@ button.close {
   }
   .remote > nav {
     padding: 0 2rem;
+  }
+  .settings .overlay-top {
+    right: 1.5rem;
+    left: 1.5rem;
+  }
+  .table.scrollable,
+  .form.scrollable {
+    height: calc(100% - 3rem);
   }
   .controls > .bottom {
     margin-right: 0;
