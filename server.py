@@ -2,20 +2,21 @@
 #  remote-gx-ir/server.py
 #  
 #  @author Leonardo Laureti <https://loltgt.ga>
-#  @version 2020-08-02
+#  @version 2020-08-03
 #  @license MIT License
 #  
 
 import configparser
 import os
 import re
-import urllib.request, urllib.error
+import urllib.request, urllib.parse, urllib.error
 import json
 import html
 from io import BytesIO
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 from ftplib import FTP
+import socket
 import time
 import threading
 import sys
@@ -149,6 +150,109 @@ class FTPcom(FTP):
 
 	def close(self):
 		print('FTPcom', 'close()', self.quit())
+
+
+class UPNPcom():
+	def __init__(self):
+		global upnp
+
+		upnp = {}
+
+		if int(config['DLNA']['MODE']):
+			upnp['server'] = self.fast_discover()
+		else:
+			upnp['server'] = self.ssdp_discover()
+
+		self.get_devicedescription()
+
+	def ssdp_discover(self):
+		print('UPNPcom', 'ssdp_discover()')
+
+		msg = \
+			'M-SEARCH * HTTP/1.1\r\n' \
+			'HOST:239.255.255.250:1900\r\n' \
+			'ST:upnp:rootdevice\r\n' \
+			'MX:' + config['DLNA']['SSDP_TIMEOUT'] + '\r\n' \
+			'MAN:"ssdp:discover"\r\n' \
+			'\r\n'
+
+		s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+		s.settimeout(int(config['DLNA']['SSDP_TIMEOUT']))
+		s.sendto(msg.encode('utf-8'), ('239.255.255.250', 1900))
+
+		try:
+			msport = ''
+			mrport = ''
+
+			while True:
+				data, addr = s.recvfrom(65507)
+
+				if addr[0] == config['DLNA']['HOST']:
+					location = re.search(r'LOCATION: \w+://([^:]+):(\d+)/(.+)', data.decode('utf-8'))
+
+					if location[3].startswith('DeviceDescription.xml') and not msport:
+						msport = str(location[2])
+					elif not mrport:
+						mrport = str(location[2])
+
+				if msport and mrport:
+					break
+
+			return {'host': config['DLNA']['HOST'], 'ms': msport, 'mr': mrport}
+		except socket.timeout:
+			pass
+
+	def fast_discover(self):
+		print('UPNPcom', 'fast_discover()')
+
+		try:
+			cmd = command('iptvs.json')
+			data = json.loads(cmd['data'])
+		except Exception as err:
+			print('UPNPcom', 'fast_discover()', 'error', err)
+
+			return False
+
+		bakiptvname = data['iptvs'][0]['name']
+		bakiptvaddr = data['iptvs'][0]['server']
+
+		if bakiptvaddr.find('#'):
+			upnpports = bakiptvaddr[-9:].split('|')
+			msport = str(int(upnpports[0], 16))
+			mrport = str(int(upnpports[1], 16))
+
+		if int(config['DLNA']['MODE']) == 2:
+			bakiptvname = urllib.parse.quote(bakiptvname)
+			bakiptvaddr = urllib.parse.quote(bakiptvaddr[:-10])
+
+			command('iptvsubmit?name=' + bakiptvname + '&protocol=m3u_playlist&address=' + bakiptvaddr + '&user_agent=&handle=7&default_portal=false')
+
+		return {'host': config['DLNA']['HOST'], 'ms': msport, 'mr': mrport}
+
+	def get_devicedescription(self):
+		print('UPNPcom', 'get_devicedescription()')
+
+		global upnp
+
+		if not upnp['server']:
+			return None
+
+		url = 'http://' + upnp['server']['host'] + ':' + upnp['server']['ms'] + '/DeviceDescription.xml';
+
+		print(upnp)
+
+		try:
+			request = urllib.request.urlopen(url, timeout=int(config['DLNA']['REQUEST_TIMEOUT']))
+			data = request.read()
+		except (urllib.error.HTTPError, urllib.error.URLError) as err:
+			print('command()', 'error:', 'urllib.error', err)
+
+			return False
+		else:
+			print('UPNPcom', 'test', 'get_devicedescription()', data)
+
+			return data
+
 
 
 def to_JSON(obj):
