@@ -2,7 +2,7 @@
  * remote-gx-ir/style.css
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-02
+ * @version 2020-08-05
  * @license MIT License
  */
 
@@ -39,6 +39,12 @@ body {
 :focus {
   outline: 0;
   -webkit-tap-highlight-color: transparent;
+}
+
+::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 0;
+  height: 0;
 }
 
 [hidden] {

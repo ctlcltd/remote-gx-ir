@@ -2,7 +2,7 @@
  * remote-gx-ir/script.js
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-02
+ * @version 2020-08-05
  * @license MIT License
  */
 
@@ -639,7 +639,7 @@ remote.prototype.chlist = function(close) {
 
 remote.prototype.update = function() {
   const self = this;
-  const channels = this.request('chlist');
+  const channels = this.request('chlist', 'update');
 
   console.log('update()');
 

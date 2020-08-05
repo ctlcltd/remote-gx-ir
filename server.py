@@ -2,7 +2,7 @@
 #  remote-gx-ir/server.py
 #  
 #  @author Leonardo Laureti <https://loltgt.ga>
-#  @version 2020-08-03
+#  @version 2020-08-05
 #  @license MIT License
 #  
 
@@ -418,6 +418,7 @@ def chlist(uri):
 		dirlist = os.listdir(e2cache)
 
 		for path in dirlist:
+			path = os.path.basename(path)
 			filename = e2cache + '/' + path
 
 			#TODO
@@ -435,9 +436,14 @@ def chlist(uri):
 		e2db = {}
 		e2cache = config['E2']['CACHE_DB'].rstrip('/')
 		e2root = config['E2']['ROOT'].rstrip('/')
+
+		if int(config['E2']['CACHE']) and not os.path.isdir(e2cache):
+			os.mkdir(e2cache)
+
 		dirlist = ftp.nlst(e2root)
 
 		for path in dirlist:
+			path = os.path.basename(path)
 			filename = e2root + '/' + path
 
 			#TODO
@@ -526,10 +532,9 @@ def mirror(uri):
 			if dirlist:
 				dirlist = ftp.nlst(dirlist[0])
 
-				#TODO
-
 				if dirlist:
-					dirlist = ftp.nlst(dirlist[0])
+					path = os.path.basename(dirlist[0])
+					dirlist = ftp.nlst(dirlist + '/timeshift/' + path + '/' + path)
 
 					if dirlist:
 						return str(dirlist[0])
