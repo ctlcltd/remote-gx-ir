@@ -15,6 +15,7 @@ May works with other STBs untested: Octagon SX88, Golden Interstar Alpha, U2C De
 
 > It requires *Python3*, web browser and optionally *ffmpeg* for local streaming. 
 
+ 
 
 ### Usage
 
@@ -41,8 +42,9 @@ https://www.python.org/downloads/
 
 ## Contributing
 
-You can open [issues!https://github.com/ctlcltd/remote-gx-ir/issues] to report bug, request features or send a [Pull Request!https://github.com/ctlcltd/remote-gx-ir/pulls].
+You can open [issues](https://github.com/ctlcltd/remote-gx-ir/issues) to report bug, request features or send a [Pull Request](https://github.com/ctlcltd/remote-gx-ir/pulls).
 
+ 
 
 ## License
 
