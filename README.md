@@ -37,14 +37,14 @@ https://www.python.org/downloads/
 ### Roadmap
 
 - DLNA UPnP
-- VLC supports
+- VLC support
 
+ 
 
 ## Contributing
 
 You can open [issues](https://github.com/ctlcltd/remote-gx-ir/issues) to report bug, request features or send a [Pull Request](https://github.com/ctlcltd/remote-gx-ir/pulls).
 
- 
 
 ## License
 
