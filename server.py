@@ -2,7 +2,7 @@
 #  remote-gx-ir/server.py
 #  
 #  @author Leonardo Laureti <https://loltgt.ga>
-#  @version 2020-08-05
+#  @version 2020-08-06
 #  @license MIT License
 #  
 
@@ -16,6 +16,7 @@ from io import BytesIO
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 from ftplib import FTP
+from xml.etree import ElementTree
 import socket
 import time
 import threading
@@ -152,21 +153,24 @@ class FTPcom(FTP):
 		print('FTPcom', 'close()', self.quit())
 
 
-class UPNPcom():
+class DLNAcom():
 	def __init__(self):
-		global upnp
-
-		upnp = {}
-
 		if int(config['DLNA']['MODE']):
-			upnp['server'] = self.fast_discover()
+			srv = self.discover_fast()
 		else:
-			upnp['server'] = self.ssdp_discover()
+			srv = self.discover_ssdp()
 
-		self.get_devicedescription()
+		if srv:
+			self.ms = srv[0]
+			self.mr = srv[1]
+			self.udn = self.get_devicedescription()
+		else:
+			raise 'ERROR'
 
-	def ssdp_discover(self):
-		print('UPNPcom', 'ssdp_discover()')
+		print('DLNAcom', 'test', '__init__', {'ms': self.ms, 'mr': self.mr, 'udn': self.udn})
+
+	def discover_ssdp(self):
+		print('DLNAcom', 'discover_ssdp()')
 
 		msg = \
 			'M-SEARCH * HTTP/1.1\r\n' \
@@ -181,8 +185,8 @@ class UPNPcom():
 		s.sendto(msg.encode('utf-8'), ('239.255.255.250', 1900))
 
 		try:
-			msport = ''
-			mrport = ''
+			ms = ''
+			mr = ''
 
 			while True:
 				data, addr = s.recvfrom(65507)
@@ -190,20 +194,23 @@ class UPNPcom():
 				if addr[0] == config['DLNA']['HOST']:
 					location = re.search(r'LOCATION: \w+://([^:]+):(\d+)/(.+)', data.decode('utf-8'))
 
-					if location[3].startswith('DeviceDescription.xml') and not msport:
-						msport = str(location[2])
-					elif not mrport:
-						mrport = str(location[2])
+					#TODO FIX ms === ms
+					if location[3].startswith('DeviceDescription.xml') and not ms:
+						ms = config['DLNA']['HOST'] + ':' + str(location[2])
+					elif not mr:
+						mr = config['DLNA']['HOST'] + ':' + str(location[2])
 
-				if msport and mrport:
+				if ms and mr:
 					break
-
-			return {'host': config['DLNA']['HOST'], 'ms': msport, 'mr': mrport}
 		except socket.timeout:
-			pass
+			print('DLNAcom', 'discover_ssdp()', 'socket.timeout')
+		else:
+			# print('DLNAcom', 'test', 'discover_ssdp()', (ms, mr))
 
-	def fast_discover(self):
-		print('UPNPcom', 'fast_discover()')
+			return (ms, mr)
+
+	def discover_fast(self):
+		print('DLNAcom', 'discover_fast()')
 
 		try:
 			cmd = command('iptvs.json')
@@ -218,8 +225,8 @@ class UPNPcom():
 
 		if bakiptvaddr.find('#'):
 			upnpports = bakiptvaddr[-9:].split('|')
-			msport = str(int(upnpports[0], 16))
-			mrport = str(int(upnpports[1], 16))
+			ms = config['DLNA']['HOST'] + ':' + str(int(upnpports[0], 16))
+			mr = config['DLNA']['HOST'] + ':' + str(int(upnpports[1], 16))
 
 		if int(config['DLNA']['MODE']) == 2:
 			bakiptvname = urllib.parse.quote(bakiptvname)
@@ -227,32 +234,132 @@ class UPNPcom():
 
 			command('iptvsubmit?name=' + bakiptvname + '&protocol=m3u_playlist&address=' + bakiptvaddr + '&user_agent=&handle=7&default_portal=false')
 
-		return {'host': config['DLNA']['HOST'], 'ms': msport, 'mr': mrport}
+		return (ms, mr)
 
 	def get_devicedescription(self):
-		print('UPNPcom', 'get_devicedescription()')
+		print('DLNAcom', 'get_devicedescription()')
 
-		global upnp
-
-		if not upnp['server']:
-			return None
-
-		url = 'http://' + upnp['server']['host'] + ':' + upnp['server']['ms'] + '/DeviceDescription.xml';
-
-		print(upnp)
+		url = 'http://' + self.ms + '/DeviceDescription.xml';
 
 		try:
 			request = urllib.request.urlopen(url, timeout=int(config['DLNA']['REQUEST_TIMEOUT']))
-			data = request.read()
+			response = request.read()
 		except (urllib.error.HTTPError, urllib.error.URLError) as err:
-			print('command()', 'error:', 'urllib.error', err)
+			print('DLNAcom', 'get_devicedescription()', 'error:', 'urllib.error', err)
 
 			return False
+
+		try:
+			xmlRoot = ElementTree.fromstring(response)
+			udn = xmlRoot.find('./{urn:schemas-upnp-org:device-1-0}device/{urn:schemas-upnp-org:device-1-0}UDN').text
+			udn = udn[5:]
+		except Exception as err:
+			print('DLNAcom', 'get_devicedescription()', 'error', err)
+
+			return None
+		
+		# print('DLNAcom', 'test', 'get_devicedescription()', udn)
+
+		return udn
+
+	def browse(self, level=0, objectid=0, browseflag='BrowseDirectChildren', requestedcount=9999):
+		print('DLNAcom', 'browse()')
+
+		url = 'http://' + self.ms + '/ContentDirectory/' + self.udn + '/control.xml';
+		payload = '<?xml version="1.0" encoding="utf-8" standalone="yes"?>' \
+				'<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">' \
+				'<s:Body>' \
+				'<u:Browse xmlns:u="urn:schemas-upnp-org:service:ContentDirectory:1">' \
+				'<ObjectID>' + str(objectid) + '</ObjectID>' \
+				'<BrowseFlag>' + browseflag + '</BrowseFlag>' \
+				'<Filter>*</Filter>' \
+				'<StartingIndex>0</StartingIndex>' \
+				'<RequestedCount>' + str(requestedcount) + '</RequestedCount>' \
+				'<SortCriteria></SortCriteria>' \
+				'</u:Browse>' \
+				'</s:Body>' \
+				'</s:Envelope>'
+		headers = {'Soapaction': '"urn:schemas-upnp-org:service:ContentDirectory:1#Browse', 'Content-type': 'text/xml;charset="utf-8"'}
+
+		try:
+			req = urllib.request.Request(url, data=payload.encode('utf-8'), headers=headers, method='POST')
+			req.timeout = int(config['DLNA']['REQUEST_TIMEOUT'])
+
+			with urllib.request.urlopen(req) as request:
+				response = request.read()
+		except (urllib.error.HTTPError, urllib.error.URLError) as err:
+			print('DLNAcom', 'browse()', 'urllib.error', err)
+
+			return False
+		
+		# print('DLNAcom', 'test', 'browse()', response)
+
+		results = {}
+
+		if level:
+			el = 'item'
+			objclass = 'object.item'
 		else:
-			print('UPNPcom', 'test', 'get_devicedescription()', data)
+			el = 'container'
+			objclass = 'object.container'
 
-			return data
+		try:
+			xmlRoot = ElementTree.fromstring(response)
+			elements = xmlRoot.find('.//*Result').text
 
+			if not elements:
+				return None
+
+			index = 0
+			xmlRoot = ElementTree.fromstring(elements)
+			elements = xmlRoot.findall('./{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}' + el)
+
+			for element in elements:
+				if element.find('./{urn:schemas-upnp-org:metadata-1-0/upnp/}class').text.find(objclass) > -1:
+					id = element.get('id')
+					name = element.find('./{http://purl.org/dc/elements/1.1/}title').text
+
+					result = {'id': id, 'name': html.escape(name)}
+
+					res = element.find('./{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res')
+					if res.text:
+						result['res'] = res.text
+
+					if objectid == 'hdhomerun://localhost:/':
+						channel = result['name'].split('  ')
+						chinfo = channel[0].split(' ')
+						chnum = re.search(r'/(\d+)\.ts', result['id'])[1]
+						chnum = int(chnum)
+						chnum += 1
+
+						result['num'] = chnum
+
+						if len(chinfo) > 1:
+							result['cnum'] = int(chinfo[0])
+
+						if len(chinfo) == 2:
+							result['cas'] = True
+						else:
+							result['cas'] = False
+
+						if len(channel) == 2 and channel[1]:
+						 	result['name'] = channel[1]
+						elif len(channel) == 3 and channel[2]:
+						 	result['name'] = channel[2]
+
+						results[chnum] = result
+					else:
+						results[index] = result
+
+					index += 1
+		except Exception as err:
+			print('DLNAcom', 'browse()', 'error', err)
+
+			return None
+
+		# print('DLNAcom', 'test', 'browse()', results)
+
+		return results
 
 
 def to_JSON(obj):
@@ -268,13 +375,13 @@ def command(uri):
 	try:
 		request = urllib.request.urlopen(url, timeout=int(config['WEBIF']['TIMEOUT']))
 		mimetype = request.info()['Content-Type']
-		data = request.read()
+		response = request.read()
 	except (urllib.error.HTTPError, urllib.error.URLError) as err:
 		print('command()', 'error:', 'urllib.error', err)
 
 		return False
 
-	return {'data': data, 'headers': {'Content-Type': mimetype}}
+	return {'data': response, 'headers': {'Content-Type': mimetype}}
 
 
 def chlist(uri):
@@ -335,19 +442,15 @@ def chlist(uri):
 		return db
 
 	def parse_e2db_bouquet(bouquet):
-		bs = {'prefix': '', 'userbouquets': []}
+		bs = {'name': '', 'userbouquets': []}
 
 		for line in bouquet:
 			if line.startswith('#SERVICE'):
 				filename = re.search(r'(?:")([^"]+)(?:")', line)[1]
 
-				print(filename)
-
 				bs['userbouquets'].append(filename)
 			elif line.startswith('#NAME'):
-				prefix = line
-
-				bs['name'] = prefix.lower()
+				bs['name'] = line.lower()
 
 		return bs
 
@@ -363,7 +466,7 @@ def chlist(uri):
 				step = False
 				continue
 			elif not step and line.startswith('#NAME'):
-				ub['name'] = html.escape(line[6:])
+				ub['name'] = html.escape(line[6:].split('  ')[0])
 				step = True
 				continue
 
@@ -495,26 +598,103 @@ def chlist(uri):
 
 	try:
 		if not uri == 'update' and int(config['E2']['CACHE']):
-			chlist = retrieve()
+			data = retrieve()
 
-			if not chlist:
-				chlist = restore()
+			if not data:
+				data = restore()
 		else:
 			e2db = get_e2db_ftp()
 
-			chlist = parse_e2db(e2db)
-			chlist = to_JSON(chlist)
+			data = parse_e2db(e2db)
+			data = to_JSON(data)
 
 			if int(config['E2']['CACHE']):
-				store(chlist)
+				store(data)
 	except Exception as err:
 		print('chlist()', 'error:', err)
 
 		return False
 
-	print(chlist)
+	return {'data': data, 'headers': {'Content-Type': 'application/json'}}
 
-	return {'data': chlist, 'headers': {'Content-Type': 'application/json'}}
+
+def dlna(uri):
+	print('dlna()', uri)
+
+	def restore(data):
+		print('dlna()', 'restore()')
+
+		#TODO
+		# for index in data['channels']:
+		# 	res = re.match(r'://([^/]+)/', data['channels'][index]['res'])
+
+		# 	data['channels'][index] = res
+
+		return data['channels']
+
+	def retrieve():
+		print('dlna()', 'retrieve()')
+
+		cachefile = config['DLNA']['CACHE_FILE']
+
+		if not os.path.isfile(cachefile):
+			return None
+
+		with open(cachefile, 'rb') as input:
+			return input.read()
+
+	def store(cache):
+		print('dlna()', 'store()')
+
+		cachefile = config['DLNA']['CACHE_FILE']
+
+		with open(cachefile, 'wb') as output:
+			output.write(cache)
+
+	#TODO
+	if not int(config['DLNA']['ENABLE']):
+		return False
+
+	if not uri.startswith('livetv'):
+		print('dlna()', 'error', 'not implemented')
+
+		return None
+
+	data = ''
+
+	try:
+		if not uri.endswith('update') and int(config['DLNA']['CACHE']):
+			data = retrieve()
+
+			if data:
+				data = json.loads(data)
+
+		dlna = DLNAcom()
+
+		if data and int(config['DLNA']['CACHE']):
+			data['ms'] = dlna.ms
+			data['mr'] = dlna.mr
+			data['udn'] = dlna.udn
+			data['channels'] = restore(data)
+
+			data = to_JSON(data)
+
+			store(data)
+		else:
+			data = {}
+			data['ms'] = dlna.ms
+			data['mr'] = dlna.mr
+			data['udn'] = dlna.udn
+			data['channels'] = dlna.browse(level=1, objectid='hdhomerun://localhost:/')
+
+			data = to_JSON(data)
+
+			if int(config['DLNA']['CACHE']):
+				store(data)
+	except Exception as err:
+		print('dlna()', 'error', err)
+
+	return {'data': data, 'headers': {'Content-Type': 'application/json'}}
 
 
 def mirror(uri):
@@ -625,13 +805,17 @@ def mirror(uri):
 
 		globals()['mirror:threads'] = {}
 
+	#TODO
+	if not int(config['MIRROR']['ENABLE']):
+		return False
+
 	try:
 		if uri == 'close':
 			return close()
 
 		suppressthreads()
 
-		mirror = {}
+		data = {}
 
 		ftp = None
 		srcurl = ''
@@ -646,7 +830,7 @@ def mirror(uri):
 			src = get_ftpsource(ftp)
 			srcurl = src.replace('@', ':' + config['FTP']['PASS'] + '@')
 
-			mirror['ftpurl'] = 'ftp://' + config['FTP']['USER'] + '@' + config['FTP']['HOST'] + src
+			data['ftpurl'] = 'ftp://' + config['FTP']['USER'] + '@' + config['FTP']['HOST'] + src
 
 		if int(config['MIRROR']['CACHE']):
 			cachefile = config['MIRROR']['CACHE_FILE']
@@ -660,7 +844,7 @@ def mirror(uri):
 		if int(config['MIRROR']['STREAM']):
 			streamurl = 'rtp://' + config['MIRROR']['STREAM_HOST'] + ':' + config['MIRROR']['STREAM_PORT']
 
-			mirror['streamurl'] = streamurl
+			data['streamurl'] = streamurl
 
 			stream_thread = KThread(target=stream, args=[srcurl, streamurl, cachefile])
 			stream_thread.start()
@@ -671,7 +855,7 @@ def mirror(uri):
 
 		return False
 
-	return {'data': to_JSON(mirror), 'headers': {'Content-Type': 'application/json'}}
+	return {'data': to_JSON(data), 'headers': {'Content-Type': 'application/json'}}
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -683,7 +867,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 		response = False
 
-		if fn in ['command', 'chlist', 'mirror']:
+		if fn in ['command', 'chlist', 'dlna', 'mirror']:
 			response = globals()[fn](uri)
 
 		if response:

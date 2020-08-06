@@ -2,7 +2,7 @@
  * remote-gx-ir/script.js
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-05
+ * @version 2020-08-06
  * @license MIT License
  */
 
@@ -54,9 +54,15 @@ function xmlToJson(xml) {
 
 function remote() {
   this.defaults = {
-    'address': 'http://localhost:8080/service',
+    'address': window.location.origin + '/service',
     'refresh': '100000',
-    'fav': 'tv:1'
+    'disconnect_routine': 'green,exit',
+    'fav': 'tv:1',
+    'dlna': '1',
+    'f1': '',
+    'f2': '',
+    'f3': '',
+    'f4': ''
   };
 
   this.storage = window.sessionStorage;
@@ -83,11 +89,12 @@ function remote() {
 
   this._req = 0;
 
+  this.cnt = document.getElementById('cnt');
   this.remote = document.getElementById('remote');
-  this.info = document.getElementById('info');
+  this.infobar = document.getElementById('infobar');
+  this.sender = document.getElementById('sending');
   this.setup = document.getElementById('settings');
   this.display = document.getElementById('display');
-  this.sender = document.getElementById('sending');
   this.controls = document.getElementById('controls');
   this.channels = document.getElementById('chlist');
   this.stream = document.getElementById('mirror');
@@ -189,6 +196,7 @@ remote.prototype.currentChannel = function() {
   function command(xhr) {
     console.log('currentChannel()', 'command()', xhr);
 
+    const chcas = self.display.querySelector('.chcas');
     const chnum = self.display.querySelector('.chnum');
     const chname = self.display.querySelector('.chname');
 
@@ -203,12 +211,26 @@ remote.prototype.currentChannel = function() {
 
       self.storage.setItem('currentChannel', chid);
 
-      if (fav === 'lamedb' && chlist['lamedb'][chid]) {
-        chnum.innerText = chlist['lamedb'][chid].num;
+      if (fav === 'lamedb' && chlist['lamedb']['list'][chid]) {
+        chnum.innerText = chlist['lamedb']['list'][chid].num;
       } else if (chlist[fav]['list'][chid]) {
         chnum.innerText = chlist[fav]['list'][chid].num;
       } else {
         chnum.innerText = '?';
+      }
+
+      chcas.innerText = '';
+
+      if (self.rs.dlna) {
+        const livetv = JSON.parse(self.storage.livetv);
+        let dnum;
+
+        if (chlist['lamedb']['list'][chid]) {
+          dnum = chlist['lamedb']['list'][chid].num;
+        }
+        if (dnum && livetv['channels'][dnum]) {
+          chcas.innerText = livetv['channels'][dnum]['cas'] ? '$' : '';
+        }
       }
     } catch (err) {
       console.error('currentChannel()', 'command()');
@@ -437,19 +459,20 @@ remote.prototype.refresh.prototype.currentVolume = function() {
 
 remote.prototype.connect = function(connected) {
   const self = this;
-  const button = this.controls.querySelector('.top-connect');
+  const button = this.infobar.querySelector('#connect button');
+  let pressed = false;
 
   if (typeof connected === 'undefined') {
     connected = parseInt(this.storage.connected);
+    pressed = true;
   }
 
-  console.log('connect()', connected);
+  console.log('connect()', connected, pressed);
 
   function disconnect() {
     console.log('connect()', 'disconnect()');
 
-    self.control('green');
-    self.control('exit');
+    self.routine.apply(self, self.rs.disconnect_routine.split(','));
   }
 
   function reconnect() {
@@ -459,21 +482,29 @@ remote.prototype.connect = function(connected) {
   }
 
   if (connected) {
+    this.cnt.classList.remove('no-session');
+
     button.querySelector('.connect-icon-disconnect').removeAttribute('hidden', '');
     button.querySelector('.connect-label-disconnect').removeAttribute('hidden', '');
 
     button.querySelector('.connect-icon-reconnect').setAttribute('hidden', '');
     button.querySelector('.connect-label-reconnect').setAttribute('hidden', '');
 
-    // disconnect();
+    if (pressed) {
+      disconnect();
+    }
   } else {
+    this.cnt.classList.add('no-session');
+
     button.querySelector('.connect-label-reconnect').removeAttribute('hidden');
     button.querySelector('.connect-label-reconnect').removeAttribute('hidden');
 
     button.querySelector('.connect-icon-disconnect').setAttribute('hidden', '');
     button.querySelector('.connect-label-disconnect').setAttribute('hidden', '');
 
-    // reconnect();
+    if (pressed) {
+      reconnect();
+    }
   }
 }
 
@@ -521,7 +552,7 @@ remote.prototype.chlist = function(close) {
         if (! form.rendered) {
           render_form(chlist);
         } else if (fav && fav in chlist) {
-          render_table(chlist[fav]);
+          render_table(chlist, fav);
         }
       } else {
         throw 0;
@@ -550,7 +581,11 @@ remote.prototype.chlist = function(close) {
         optgroup = document.createElement('optgroup');
         optgroup.setAttribute('label', current_group.toUpperCase());
 
-        select.append(optgroup);
+        if (idx.indexOf('tv') != -1) {
+          select.insertBefore(optgroup, select.lastElementChild);
+        } else {
+          select.append(optgroup);
+        }
       }
 
       const option = document.createElement('option');
@@ -564,12 +599,12 @@ remote.prototype.chlist = function(close) {
 
     select.onchange = listChange;
 
-    render_table(data[fav]);
+    render_table(data, fav);
 
     form.rendered = true;
   }
 
-  function render_table(data) {
+  function render_table(data, current) {
     console.log('chlist()', 'render_table()');
 
     const tr_tpl = tbody.firstElementChild;
@@ -581,14 +616,31 @@ remote.prototype.chlist = function(close) {
     }
 
     var i = 0;
+    var livetv;
 
-    for (const chid in data['list']) {
+    if (self.rs.dlna) {
+      livetv = JSON.parse(self.storage.livetv);
+    }
+
+    for (const chid in data[current]['list']) {
       const tr = tr_tpl.cloneNode(true);
 
-      tr.firstElementChild.innerText = data['list'][chid].num;
-      tr.lastElementChild.innerText = data['list'][chid].name;
+      tr.firstElementChild.innerText = data[current]['list'][chid].num;
+      tr.firstElementChild.nextElementSibling.innerText = data[current]['list'][chid].name;
+      tr.lastElementChild.innerText = '';
 
-      tr.dataset.chnum = data['list'][chid].num;
+      if (livetv) {
+        let dnum;
+
+        if (data['lamedb']['list'][chid]) {
+          dnum = data['lamedb']['list'][chid].num;
+        }
+        if (dnum && livetv['channels'][dnum]) {
+          tr.lastElementChild.innerText = livetv['channels'][dnum]['cas'] ? '$' : '';
+        }
+      }
+
+      tr.dataset.chnum = data[current]['list'][chid].num;
       tr.onclick = channelChange;
       tr.removeAttribute('hidden');
 
@@ -637,17 +689,23 @@ remote.prototype.chlist = function(close) {
   }
 }
 
-remote.prototype.update = function() {
+remote.prototype.update = function(rehydrate) {
   const self = this;
-  const channels = this.request('chlist', 'update');
+  const path_force = rehydrate ? '/' : '/update';
 
-  console.log('update()');
+  console.log('update()', rehydrate);
 
-  function download(xhr) {
-    console.log('update()', 'download()', xhr);
+  chlist();
+
+  if (parseInt(this.rs.dlna)) {
+    livetv();
+  }
+
+  function download_chlist(xhr) {
+    console.log('update()', 'download_chlist()', xhr);
 
     try {
-      if (xhr.response != 'error') {
+      if (xhr.response != 'ERROR') {
         self.storage.setItem('chlist', xhr.response);
 
         self.status();
@@ -655,13 +713,39 @@ remote.prototype.update = function() {
         throw 0;
       }
     } catch (err) {
-      console.error('update()', 'download()');
+      console.error('update()', 'download_chlist()');
 
       self.error(xhr, err);
     }
   }
 
-  channels.then(download).catch(self.error);
+  function download_livetv(xhr) {
+    console.log('update()', 'download_livetv()', xhr);
+
+    try {
+      if (xhr.response != 'ERROR') {
+        self.storage.setItem('livetv', xhr.response);
+
+        self.status();
+      } else {
+        throw 0;
+      }
+    } catch (err) {
+      console.error('update()', 'download_livetv()');
+
+      self.error(xhr, err);
+    }
+  }
+
+  function chlist() {
+    const channels = self.request('chlist', path_force);
+    channels.then(download_chlist).catch(self.error);
+  }
+
+  function livetv() {
+    const livetv = self.request('dlna', '/livetv' + path_force);
+    livetv.then(download_livetv).catch(self.error);
+  }
 }
 
 remote.prototype.mirror = function(close) {
@@ -674,7 +758,7 @@ remote.prototype.mirror = function(close) {
     console.log('mirror()', 'stream()', xhr);
 
     try {
-      if (xhr.response != 'error') {
+      if (xhr.response != 'ERROR') {
         data = JSON.parse(xhr.response);
 
         links(data);
@@ -860,6 +944,24 @@ remote.prototype.mirror = function(close) {
   }
 }
 
+remote.prototype.fav = function() {
+  console.log('fav()');
+
+  this.control('fav');
+}
+
+remote.prototype.tv_radio = function() {
+  console.log('tv_radio()');
+
+  this.control('tv_radio', false, true);
+}
+
+remote.prototype.zap = function(checked) {
+  console.log('zap()', checked);
+
+
+}
+
 remote.prototype.settings = function(close) {
   const self = this;
   const form = this.setup.querySelector('form');
@@ -972,6 +1074,18 @@ remote.prototype.settings = function(close) {
 remote.prototype.session = function() {
   const self = this;
   const session = this.request('command', '/web/session');
+  const timestamp = new Date(self.storage.session);
+  let expired = false;
+
+  if (self.storage.session) {
+    const expires = new Date(new Date().getTime() + (60 * 60 * 24 * 1e3));
+
+    expired = timestamp.getTime() > expires.getTime();
+  } else {
+    self.storage.setItem('session', new Date().toJSON());
+  }
+
+  console.log('session()', timestamp.toJSON(), expired);
 
   function check(xhr) {
     console.log('session()', 'check()', xhr);
@@ -981,10 +1095,12 @@ remote.prototype.session = function() {
         self.storage.setItem('connected', 1);
         self.connect(true);
 
-        if (self.storage.chlist) {
-          self.status();
+        if (! self.storage.chlist) {
+          self.update(false);
+        } else if (expired) {
+          self.update(true);
         } else {
-          self.update();
+          self.status();
         }
 
         if (! self.storage.currentFav) {
@@ -995,9 +1111,6 @@ remote.prototype.session = function() {
           self.tick = setInterval(self.status.bind(self), parseInt(self.rs.refresh));
         }
       } else {
-        self.storage.setItem('connected', 0);
-        self.connect(false);
-
         if (self.tick) {
           clearInterval(self.tick);
         }
@@ -1006,6 +1119,9 @@ remote.prototype.session = function() {
       }
     } catch (err) {
       console.error('session()', 'check()');
+
+      self.storage.setItem('connected', 0);
+      self.connect(false);
 
       self.error(xhr, err);
     }
@@ -1036,8 +1152,12 @@ function _proxy(callee) {
 
 function ir() {}
 ir.prototype.connect = _proxy('connect');
+ir.prototype.update = _proxy('update');
 ir.prototype.chlist = _proxy('chlist');
 ir.prototype.mirror = _proxy('mirror');
+ir.prototype.fav = _proxy('fav');
+ir.prototype.tv_radio = _proxy('tv_radio');
+ir.prototype.zap = _proxy('zap');
 ir.prototype.settings = _proxy('settings');
 ir.prototype.control = _proxy('control');
 ir.prototype.return = _proxy('return');

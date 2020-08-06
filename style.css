@@ -2,7 +2,7 @@
  * remote-gx-ir/style.css
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-05
+ * @version 2020-08-06
  * @license MIT License
  */
 
@@ -25,6 +25,7 @@ body {
   color: #eee;
   background: #2d2f2d;
   cursor: default;
+  user-select: none;
 }
 
 @keyframes loading {
@@ -51,12 +52,23 @@ body {
   display: none !important;
 }
 
-.view {
+#cnt {
+  position: relative;
+}
+
+#cnt,
+.view,
+.overlay {
   max-width: 60ch;
   height: 100vh;
   margin: auto;
   padding: 0;
   background: #202020;
+}
+
+.remote {
+  margin: auto;
+  padding: 0;
 }
 
 .overlay {
@@ -93,7 +105,7 @@ body {
   opacity: 0;
 }
 
-.remote {
+.remote.view {
   padding-top: 0;
 }
 .remote > div {
@@ -126,6 +138,7 @@ body {
   position: -webkit-sticky;
   position: sticky;
   top: 0;
+  z-index: 1;
 }
 .form.scrollable fieldset:last-child {
   position: -webkit-sticky;
@@ -183,7 +196,7 @@ td {
   border-width: 1px 0;
   transition: background ease .1s;
 }
-tr:first-child td, tr:last-child td {
+tr:nth-child(2) td, tr:nth-last-child(1) td {
   border: 0;
 }
 
@@ -261,6 +274,51 @@ textarea {
   line-height: 1.6;
 }
 
+.switch label {
+  position: relative;
+  display: inline-block;
+  width: 2.3rem;
+  height: 1.55rem;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.switch .slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #111;
+  box-shadow: 0 0 .1rem .2rem rgba(0,0,0,.1), inset 0 0 .2rem .1rem rgba(0,0,0,.1);
+  border-radius: .5rem;
+  transition: .4s;
+  cursor: pointer;
+}
+.switch .slider:before {
+  content: '';
+  position: absolute;
+  width: 1rem;
+  height: 1.05rem;
+  left: .2rem;
+  bottom: .25rem;
+  background: #eee;
+  box-shadow: .02rem .02rem .1rem rgba(0,0,0,.5);
+  transition: 50ms ease-out;
+}
+.switch input:checked + .slider,
+.switch input:focus + .slider {
+  background: #1c1c1c;
+}
+.switch input:checked + .slider:before {
+  transform: translateX(.95rem);
+}
+.switch .slider:before {
+  border-radius: 50%;
+}
+
 button {
   margin: auto;
   padding: .7rem 1.3rem;
@@ -275,6 +333,7 @@ button {
   white-space: nowrap;
   cursor: pointer;
   -webkit-appearance: none;
+  transition: 50ms ease-out;
 }
 button:focus {
   background: gray;
@@ -327,7 +386,9 @@ button.close {
   position: -webkit-sticky;
   position: sticky;
   top: 0;
+  height: 2rem;
   background: #202020;
+  box-shadow: 0 .3rem .4rem .8rem #202020;
 }
 
 .top button {
@@ -338,17 +399,68 @@ button.close {
 .top button:focus {
   background: lightslategray;
 }
+.top button:first-of-type { margin-left: 0; }
+.top button:last-of-type { margin-right: 0; }
 
-.top > button:first-child { float: left; margin-left: 0; }
-.top > button:last-child { float: right; margin-right: 0; }
+.top div:first-child { float: left; margin-left: 0; }
+.top div:last-child { float: right; margin-right: 0; }
 .top div { display: inline-block; margin: 0 -.2rem; }
 
-.top .connect-icon,
-.top .settings-icon {
-  left: -.15rem;
+.infobar button {
+  min-width: 2.2rem;
+  margin: .2rem;
+  padding: .4rem .6rem .4rem .8rem;
+  font-size: .6rem;
+  color: #6e6e6e;
+  border: .06rem solid #555;
+  opacity: .7;
+}
+.infobar button,
+.infobar button:focus {
+  background: transparent;
+  box-shadow: none;
 }
 
-.top .connect-label,
+.connect .connect-icon {
+  left: -.2rem;
+}
+.connect .connect-label {
+  display: none;
+  margin-left: .4rem;
+  font-weight: bold;
+}
+
+.zap {
+  display: inline-block;
+}
+.zap .zap-label {
+  display: inline-block;
+  height: 1.9rem;
+  margin: 0;
+  font-size: .7rem;
+  font-weight: bold;
+  line-height: 1;
+  vertical-align: middle;
+  color: #6e6e6e;
+  opacity: .6;
+}
+.zap label {
+  margin: .3rem .2rem 0;
+}
+.zap .slider:before {
+  background: #999;
+}
+.zap input:checked + .slider {
+  background: #123e75;
+}
+.zap input:focus + .slider {
+  background: #06356f;
+}
+
+.top button span:first-of-type {
+  left: -.3rem;
+}
+.top .update-label,
 .top .settings-label {
   display: none;
   margin-left: .3rem;
@@ -361,10 +473,6 @@ button.close {
 }
 .ctrl button:focus {
   background: #cfcfcf;
-}
-
-.top div button span:first-of-type {
-  left: -.3rem;
 }
 
 .ctrl .ctrl-top,
@@ -509,7 +617,6 @@ button.close {
 }
 .misc > div {
   display: grid;
-  /*grid-template-columns: repeat(3, 1fr);*/
   grid-template-columns: repeat(2, 1fr);
   width: fit-content;
   max-height: fit-content;
@@ -550,24 +657,56 @@ button.close {
 }
 
 .infobar {
+  position: relative;
   margin: 0;
   padding: .5rem 0;
-  height: 1.5rem;
+  height: 3rem;
+  text-align: left;
+}
+.infobar > div {
+  display: inline-block;
+}
+.infobar > .connect {
+  float: left;
+  margin: 0 1rem 0 2rem;
+}
+.infobar > .sending {
+  display: block;
 }
 
 .sending {
-  display: block;
+  position: fixed;
+  top: .9rem;
   width: .7rem;
-  height: .7rem;
+  height: .68rem;
   background: red;
   box-shadow: inset 0 0 .1rem .05rem #000, 0 0 .2rem .1rem rgba(0,0,0,.3), inset 0 0 .1rem .2rem rgba(0,0,0,.1);
   border-radius: 50%;
   opacity: .8;
   transition: 50ms opacity ease;
+  z-index: 1111;
 }
-
 .sending[hidden] {
   opacity: 0;
+}
+
+.connect-icon-disconnect,
+.connect-icon-reconnect {
+  top: .03rem;
+  width: .6rem;
+  height: .56rem;
+  margin: -.05rem -.3rem 0 -.05rem;
+  border: solid;
+  border-radius: 20%;
+  border-width: .15rem;
+}
+.connect-icon-disconnect {
+  transform: rotate(15deg);
+  border-width: .3rem;
+}
+.connect-icon-reconnect {
+  transform: rotate(30deg);
+  border-width: .1rem;
 }
 
 .display {
@@ -583,7 +722,7 @@ button.close {
 }
 
 .controls {
-  margin: 1rem 0;
+  margin: 1.5rem 0;
   overflow-x: auto;
   overflow-y: scroll;
   -webkit-overflow-scrolling: touch;
@@ -606,18 +745,26 @@ button.close {
   padding: .6rem 0;
 }
 
+.chcas,
 .chnum,
 .chname {
   display: inline-block;
 }
-
+.chcas {
+  position: absolute;
+  right: 4.5rem;
+  bottom: .3rem;
+  width: .4rem;
+  font-size: .6rem;
+  color: gold;
+  opacity: .4;
+}
 .chnum {
   width: 2.6rem;
   font-size: 1.1rem;
   margin-right: .4rem;
   color: #ccc;
 }
-
 .chdigits {
   position: absolute;
   top: 0;
@@ -742,7 +889,10 @@ button.close {
   z-index: 9999;
 }
 .chlist td { font-weight: bold; }
-.chlist th:first-child, .chlist td:first-child { max-width: 4rem; }
+.chlist th:first-child, .chlist td:first-child { width: 3rem; }
+.chlist th:last-child { text-indent: -999pt; }
+.chlist td:nth-child(2) { text-overflow: ellipsis; white-space: nowrap; overflow-x: hidden; }
+.chlist td:last-child { font-size: .65rem; font-weight: normal; color: gold; opacity: .4; text-align: center; }
 
 .arrow {
   position: relative;
@@ -776,25 +926,6 @@ button.close {
   content: '';
   display: block;
   transform: rotate(90deg) scale(1.05, .9) translateX(-37%);
-}
-
-.connect-icon-disconnect,
-.connect-icon-reconnect {
-  top: .03rem;
-  width: .6rem;
-  height: .56rem;
-  margin: -.05rem -.3rem 0 -.05rem;
-  border: solid;
-  border-radius: 20%;
-  border-width: .15rem;
-}
-.connect-icon-disconnect {
-  transform: rotate(15deg);
-  border-width: .3rem;
-}
-.connect-icon-reconnect {
-  transform: rotate(30deg);
-  border-width: .1rem;
 }
 
 .chlist-icon {
@@ -835,34 +966,6 @@ button.close {
 .mirror-icon:after {
   border-radius: 25%;
   border-style: solid;
-}
-
-.settings-icon {
-  top: .05rem;
-  width: 0;
-  height: 0;
-  margin: 0 -.1rem 0 .1rem;
-  border: solid;
-  border-width: .29rem;
-  transform: scale(1.1);
-}
-.settings-icon,
-.settings-icon:before {
-  border-radius: 50%;
-}
-.settings-icon:before {
-  content: '';
-  position: absolute;
-  display: block;
-}
-.settings-icon:before {
-  top: -.55rem;
-  left: -.55rem;
-  width: .77rem;
-  height: .77rem;
-  border-style: dashed;
-  border-width: .12rem;
-  transform: scale(.9) rotate(90deg) translate(4%, -3%);
 }
 
 .stop-icon {
@@ -932,6 +1035,14 @@ button.close {
   background: #636363;
 }
 
+.no-session .remote button:not(.top-settings),
+.no-session .remote .switch {
+  opacity: .5;
+}
+.no-session .display > span {
+  opacity: .75;
+}
+
 
 @media (orientation: portrait) {
   .controls {
@@ -945,9 +1056,6 @@ button.close {
 }
 
 @media (min-height: 678px) {
-  .controls {
-    margin: 10% 0;
-  }
   .controls > div {
     margin-top: 8%;
     margin-bottom: 8%;
@@ -969,14 +1077,13 @@ button.close {
   .overlay.view {
     padding: 1.5rem 2rem;
   }
-  .remote {
-    padding-top: 1.5rem;
-  }
   .remote > div {
     margin: 0 2rem;
   }
+  .infobar,
   .remote > nav {
-    padding: 0 2rem;
+    padding-right: 2rem;
+    padding-left: 2rem;
   }
   .settings .overlay-top {
     right: 1.5rem;
@@ -990,12 +1097,18 @@ button.close {
     margin-right: 0;
     margin-left: 0;
   }
-  .top .connect-label,
+  .connect .connect-label {
+    display: inline-block;
+  }
+  .connect button .connect-icon {
+    left: -.2rem;
+  }
+  .top .update-label,
   .top .settings-label {
     display: inline-block;
   }
-  .top button .connect-icon,
-  .top button .settings-icon {
+  .top button.update-icon,
+  .top button.settings-icon {
     left: -.3rem;
   }
   .bottom {

@@ -8,13 +8,23 @@
 <title>REMOTE-GX-IR</title>
 </head>
 <body>
-<main id="remote" class="remote view">
+<div id="cnt" class="no-session">
 <div id="infobar" class="infobar">
   <div id="sending" class="sending" hidden></div>
+  <div id="connect" class="connect"><button class="infobar-connect" onclick="ir.connect(arguments[0])"><span class="connect-icon connect-icon-disconnect" hidden></span><span class="connect-icon connect-icon-reconnect"></span> <span class="connect-label connect-label-disconnect" hidden>LOGOUT</span><span class="connect-label connect-label-reconnect">LOGIN</span></button></div>
+  <div id="zap" class="zap switch">
+    <span class="zap-label">ZAP</span>
+    <label>
+      <input type="checkbox" onclick="this.blur()" onchange="ir.zap(arguments[0], this.checked)">
+      <span class="slider"></span>
+    </label>
+  </div>
 </div>
+<main id="remote" class="remote view">
 <div id="display" class="display">
   <span class="channel" title="CHANNEL">
     <span class="chdigits" hidden></span>
+    <span class="chcas" title="CAS">$</span>
     <span class="chnum" title="NUMBER">?</span>
     <span class="chname" title="NAME">CHANNEL</span>
   </span>
@@ -30,12 +40,14 @@
 </div>
 <nav id="controls" class="controls">
   <div class="top">
-    <button class="top-connect" onclick="ir.connect(arguments[0])"><span class="connect-icon connect-icon-disconnect" hidden></span><span class="connect-icon connect-icon-reconnect"></span> <span class="connect-label connect-label-disconnect" hidden>LOGOUT</span><span class="connect-label connect-label-reconnect">LOGIN</span></button>
     <div>
       <button class="top-chlist" onclick="ir.chlist(arguments[0])"><span class="chlist-icon"></span> CHLIST</button>
       <button class="top-mirror" onclick="ir.mirror(arguments[0])"><span class="mirror-icon"></span> MIRROR</button>
     </div>
-    <button class="top-settings" onclick="ir.settings(arguments[0])"><span class="settings-icon"></span> <span class="settings-label">SETTINGS</span></button>
+    <div>
+      <button class="top-update" onclick="ir.update(arguments[0], true)"><span class="update-icon">%</span> <span class="update-label">UPDATE</span></button>
+      <button class="top-settings" onclick="ir.settings(arguments[0])"><span class="settings-icon">*</span> <span class="settings-label">SETTINGS</span></button>
+    </div>
   </div>
   <div class="ctrl">
     <div class="ctrl-left">
@@ -72,18 +84,18 @@
     <button onclick="ir.control(arguments[0], 'rec')" title="REC"><span class="rec-icon"></span></button>
   </div>
   <div class="funcs">
-    <button class="funcs-f1" onclick="ir.control(arguments[0], 'red')" title="RED (YouTube)">RED</button>
-    <button class="funcs-f2" onclick="ir.control(arguments[0], 'green')" title="GREEN (KODI)">GREEN</button>
-    <button class="funcs-f3" onclick="ir.control(arguments[0], 'yellow')" title="YELLOW (Internet radio)">YELLOW</button>
-    <button class="funcs-f4" onclick="ir.control(arguments[0], 'blue')" title="BLUE (Tempo)">BLUE</button>
-    <button class="funcs-help" onclick="ir.control(arguments[0], 'white')" title="WHITE HELP">HELP</button>
+    <button class="funcs-f1" onclick="ir.control(arguments[0], 'red')" title="RED">RED</button>
+    <button class="funcs-f2" onclick="ir.control(arguments[0], 'green')" title="GREEN">GREEN</button>
+    <button class="funcs-f3" onclick="ir.control(arguments[0], 'yellow')" title="YELLOW">YELLOW</button>
+    <button class="funcs-f4" onclick="ir.control(arguments[0], 'blue')" title="BLUE">BLUE</button>
+    <!--<button class="funcs-help" onclick="ir.control(arguments[0], 'white')" title="WHITE">HELP</button>-->
   </div>
   <div class="bottom">
     <div>
       <div class="misc">
         <div>
-          <button onclick="ir.control(arguments[0], 'tv_radio', false, true)">TV/RADIO</button>
-          <button onclick="ir.control(arguments[0], 'fav')">FAV</button>
+          <button onclick="ir.tv_radio(arguments[0])">TV/RADIO</button>
+          <button onclick="ir.fav(arguments[0], false)">FAV</button>
           <button onclick="ir.control(arguments[0], 'teletext')">TEXT</button>
           <button onclick="ir.control(arguments[0], 'subtitle')">SUBTITLE</button>
           <button onclick="ir.control(arguments[0], 'recall')">RECALL</button>
@@ -131,12 +143,14 @@
           <table>
             <thead>
               <th>CHNUM</th>
-              <th>CHLIST</th>
+              <th>CHNAME</th>
+              <th>CHCAS</th>
             </thead>
             <tbody>
               <tr hidden>
                 <td class="dchnum">?</td>
                 <td class="dchname">CHANNEL</td>
+                <td class="dchcas"></td>
               </tr>
             </tbody>
           </table>
@@ -187,6 +201,7 @@
     </form>
   </div>
 </main>
+</div>
 <script src="script.js"></script>
 </body>
 </html>
