@@ -2,7 +2,7 @@
  * remote-gx-ir/script.js
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-06
+ * @version 2020-08-07
  * @license MIT License
  */
 
@@ -59,6 +59,8 @@ function remote() {
     'disconnect_routine': 'green,exit',
     'fav': 'tv:1',
     'dlna': '1',
+    'ftp': '0',
+    'stream': '0',
     'f1': '',
     'f2': '',
     'f3': '',
@@ -100,6 +102,8 @@ function remote() {
   this.stream = document.getElementById('mirror');
 
   this.session();
+  this.zap();
+  this.livetv();
 }
 
 remote.prototype.request = function(service, uri) {
@@ -516,6 +520,12 @@ remote.prototype.chlist = function(close) {
   const thead = table.querySelector('thead');
   const tbody = table.querySelector('tbody');
 
+  var livetv;
+
+  if (self.rs.dlna) {
+    livetv = JSON.parse(self.storage.livetv);
+  }
+
   console.log('chlist()', close);
 
   function show() {
@@ -616,11 +626,6 @@ remote.prototype.chlist = function(close) {
     }
 
     var i = 0;
-    var livetv;
-
-    if (self.rs.dlna) {
-      livetv = JSON.parse(self.storage.livetv);
-    }
 
     for (const chid in data[current]['list']) {
       const tr = tr_tpl.cloneNode(true);
@@ -629,6 +634,9 @@ remote.prototype.chlist = function(close) {
       tr.firstElementChild.nextElementSibling.innerText = data[current]['list'][chid].name;
       tr.lastElementChild.innerText = '';
 
+      tr.dataset.dnum = '';
+      tr.dataset.res = '';
+
       if (livetv) {
         let dnum;
 
@@ -636,11 +644,18 @@ remote.prototype.chlist = function(close) {
           dnum = data['lamedb']['list'][chid].num;
         }
         if (dnum && livetv['channels'][dnum]) {
+          tr.dataset.dnum = dnum;
+          tr.dataset.res = livetv['channels'][dnum].res;
           tr.lastElementChild.innerText = livetv['channels'][dnum]['cas'] ? '$' : '';
+
+          if (self.storage.t_livetv && current.indexOf('tv') === -1) {
+            tr.setAttribute('disabled', '');
+          }
         }
       }
 
       tr.dataset.chnum = data[current]['list'][chid].num;
+      tr.dataset.idx = current;
       tr.onclick = channelChange;
       tr.removeAttribute('hidden');
 
@@ -652,14 +667,38 @@ remote.prototype.chlist = function(close) {
     table.rendered = true;
   }
 
+  function _zap() {
+    console.info('chlist()', '_zap()', this.dataset.chnum);
+
+    let cmds = this.dataset.chnum.split('').map(function(num) { return 'num_' + num; });
+    self.routine.apply(self, cmds);
+  }
+
+  //TODO
+  //- dlna trick
+  //- fav
+  function _livetv() {
+    console.info('chlist()', '_livetv()', this.dataset.chnum);
+
+    if (! self.storage.s_livetv) {
+      self.storage.setItem('s_livetv', true);
+    }
+
+    if (this.dataset.dnum && this.dataset.res) {
+      window.open(this.dataset.res);
+    }
+  }
+
   function channelChange(event) {
     event.preventDefault();
 
-    console.info('chlist()', 'channelChange()', this.dataset.chnum);
+    console.info('chlist()', 'channelChange()', this.dataset.chnum, this.dataset.dnum);
 
-    let cmds = this.dataset.chnum.split('').map(function(num) { return 'num_' + num; });
-
-    self.routine.apply(self, cmds);
+    if (self.rs.dlna && self.storage.t_livetv) {
+      _livetv.call(this);
+    } else {
+      _zap.call(this);
+    }
 
     setTimeout(function() {
       hide();
@@ -807,6 +846,7 @@ remote.prototype.mirror = function(close) {
     console.log('mirror()', 'render()');
 
     form.querySelector('#streamurl').onclick = open;
+    form.querySelector('#dlnaurl').onclick = open;
 
     form.lastElementChild.firstElementChild.onclick = copy;
     form.lastElementChild.lastElementChild.onclick = stop;
@@ -818,12 +858,13 @@ remote.prototype.mirror = function(close) {
     console.log('mirror()', 'clear()');
 
     form.querySelector('#ftp').setAttribute('hidden', '');
-    form.querySelector('#upnp').setAttribute('hidden', '');
+    form.querySelector('#dlna').setAttribute('hidden', '');
     form.querySelector('#stream').setAttribute('hidden', '');
 
     form.reset();
 
     form.querySelector('#streamurl').onclick = null;
+    form.querySelector('#dlnaurl').onclick = null;
     form.lastElementChild.firstElementChild.onclick = null;
     form.lastElementChild.lastElementChild.onclick = null;
 
@@ -837,9 +878,9 @@ remote.prototype.mirror = function(close) {
       form.querySelector('#ftp').removeAttribute('hidden');
       form.querySelector('#ftpurl').value = data.ftpurl;
     }
-    if ('upnpurl' in data) {
-      form.querySelector('#upnp').removeAttribute('hidden');
-      form.querySelector('#upnpurl').value = data.ftpurl;
+    if ('dlnaurl' in data) {
+      form.querySelector('#dlna').removeAttribute('hidden');
+      form.querySelector('#dlnaurl').value = data.dlnaurl;
     }
     if ('streamurl' in data) {
       form.querySelector('#stream').removeAttribute('hidden');
@@ -890,21 +931,42 @@ remote.prototype.mirror = function(close) {
   function start() {
     console.log('mirror()', 'start()');
 
-    self.routine('playpause');
+    var chnum = '';
 
-    setTimeout(function() {
-      self.control('stop');
+    try {
+      const chlist = JSON.parse(self.storage.chlist);
+      const chid = self.storage.currentChannel;
 
-      this.clearTimeout();
-    }, 100);
+      if (chid && chlist['lamedb']['list'][chid]) {
+        chnum = chlist['lamedb']['list'][chid].num;
+      }
+    } catch (err) {
+      console.error('mirror()', 'start()');
 
-    setTimeout(function() {
-      const mirror = self.request('mirror');
+      self.error(xhr, err);
+    }
+
+    if (self.rs.dlna && ! (self.rs.ftp || self.rs.stream)) {
+      const mirror = self.request('mirror', '/' + chnum);
 
       mirror.then(stream).catch(self.error);
+    } else {
+      self.routine('playpause');
 
-      this.clearTimeout();
-    }, 3e2);
+      setTimeout(function() {
+        self.control('stop');
+
+        this.clearTimeout();
+      }, 100);
+
+      setTimeout(function() {
+        const mirror = self.request('mirror', chnum);
+
+        mirror.then(stream).catch(self.error);
+
+        this.clearTimeout();
+      }, 3e2);
+    }
   }
 
   function stop(event) {
@@ -912,19 +974,23 @@ remote.prototype.mirror = function(close) {
 
     console.log('mirror()', 'stop()');
 
-    self.routine('stop', 'channelup', 'channeldown');
+    if (self.rs.dlna && ! (self.rs.ftp || self.rs.stream)) {
+      self.control('stop');
+    } else {
+      self.routine('stop', 'channelup', 'channeldown');
 
-    setTimeout(function() {
-      self.status('currentChannel');
+      setTimeout(function() {
+        self.status('currentChannel');
 
-      this.clearTimeout();
-    }, 500);
+        this.clearTimeout();
+      }, 500);
 
-    setTimeout(function() {
-      self.status('currentSignal');
+      setTimeout(function() {
+        self.status('currentSignal');
 
-      this.clearTimeout();
-    }, 3000);
+        this.clearTimeout();
+      }, 3000);
+    }
 
     const mirror = self.request('mirror', '/close');
 
@@ -959,7 +1025,40 @@ remote.prototype.tv_radio = function() {
 remote.prototype.zap = function(checked) {
   console.log('zap()', checked);
 
+  if (typeof checked === 'undefined') {
+    this.infobar.querySelector('#zap input[type="checkbox"]').checked = this.storage.t_zap;
 
+    return;
+  }
+
+  if (this.storage.t_zap) {
+    this.storage.removeItem('t_zap');
+  } else {
+    this.storage.setItem('t_zap', 1);    
+  }
+}
+
+remote.prototype.livetv = function(checked) {
+  console.log('livetv()', checked);
+
+  if (typeof checked === 'undefined') {
+    this.infobar.querySelector('#livetv input[type="checkbox"]').checked = this.storage.t_livetv;
+
+    return;
+  }
+
+  if (this.storage.t_livetv) {
+    this.storage.removeItem('t_livetv');
+
+    //TODO
+    if (this.storage.s_livetv) {
+      this.storage.removeItem('s_livetv');
+
+      this.routine('fav', 'down', 'ok', 'ok', 'exit');
+    }
+  } else {
+    this.storage.setItem('t_livetv', 1);
+  }
 }
 
 remote.prototype.settings = function(close) {
@@ -1158,6 +1257,7 @@ ir.prototype.mirror = _proxy('mirror');
 ir.prototype.fav = _proxy('fav');
 ir.prototype.tv_radio = _proxy('tv_radio');
 ir.prototype.zap = _proxy('zap');
+ir.prototype.livetv = _proxy('livetv');
 ir.prototype.settings = _proxy('settings');
 ir.prototype.control = _proxy('control');
 ir.prototype.return = _proxy('return');

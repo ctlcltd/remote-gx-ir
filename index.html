@@ -19,12 +19,18 @@
       <span class="slider"></span>
     </label>
   </div>
+  <div id="livetv" class="livetv switch">
+    <span class="livetv-label">LIVE TV</span>
+    <label>
+      <input type="checkbox" onclick="this.blur()" onchange="ir.livetv(arguments[0], this.checked)">
+      <span class="slider"></span>
+    </label>
+  </div>
 </div>
 <main id="remote" class="remote view">
 <div id="display" class="display">
   <span class="channel" title="CHANNEL">
     <span class="chdigits" hidden></span>
-    <span class="chcas" title="CAS">$</span>
     <span class="chnum" title="NUMBER">?</span>
     <span class="chname" title="NAME">CHANNEL</span>
   </span>
@@ -37,6 +43,7 @@
     <span class="signal-strength" title="STRENGTH">0%</span>
     <span class="signal-quality" title="QUALITY">0%</span>
   </span>
+  <span class="chcas" title="CAS">$</span>
 </div>
 <nav id="controls" class="controls">
   <div class="top">
@@ -172,9 +179,9 @@
         <label for="ftpurl">FTP URL</label>
         <input class="ftpurl" id="ftpurl" type="text" readonly>
       </fieldset>
-      <fieldset id="upnp" hidden>
-        <label for="upnpurl">uPnP URL</label>
-        <input class="upnpurl" id="upnpurl" type="text" readonly>
+      <fieldset id="dlna" hidden>
+        <label for="dlnaurl">DLNA URL</label>
+        <input class="dlnaurl" id="dlnaurl" type="text" readonly>
       </fieldset>
       <fieldset id="stream" hidden>
         <label>Stream URL</label>

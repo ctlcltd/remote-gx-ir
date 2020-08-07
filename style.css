@@ -2,7 +2,7 @@
  * remote-gx-ir/style.css
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-06
+ * @version 2020-08-07
  * @license MIT License
  */
 
@@ -430,10 +430,10 @@ button.close {
   font-weight: bold;
 }
 
-.zap {
+.infobar .switch {
   display: inline-block;
 }
-.zap .zap-label {
+.infobar .switch span:first-child {
   display: inline-block;
   height: 1.9rem;
   margin: 0;
@@ -444,18 +444,14 @@ button.close {
   color: #6e6e6e;
   opacity: .6;
 }
-.zap label {
+.infobar .switch label {
   margin: .3rem .2rem 0;
 }
-.zap .slider:before {
+.infobar .switch .slider:before {
   background: #999;
 }
-.zap input:checked + .slider {
-  background: #123e75;
-}
-.zap input:focus + .slider {
-  background: #06356f;
-}
+.livetv.switch input:checked + .slider { background: #123e75; }
+.livetv.switch input:focus + .slider { background: #06356f; }
 
 .top button span:first-of-type {
   left: -.3rem;

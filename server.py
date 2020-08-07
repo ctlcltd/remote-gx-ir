@@ -2,7 +2,7 @@
 #  remote-gx-ir/server.py
 #  
 #  @author Leonardo Laureti <https://loltgt.ga>
-#  @version 2020-08-06
+#  @version 2020-08-07
 #  @license MIT License
 #  
 
@@ -621,16 +621,35 @@ def chlist(uri):
 def dlna(uri):
 	print('dlna()', uri)
 
+	if not int(config['DLNA']['ENABLE']):
+		print('dlna()', 'not enabled')
+
+		return False
+
 	def restore(data):
 		print('dlna()', 'restore()')
 
-		#TODO
-		# for index in data['channels']:
-		# 	res = re.match(r'://([^/]+)/', data['channels'][index]['res'])
+		if not data['channels']:
+			return None
 
-		# 	data['channels'][index] = res
+		for index in data['channels']:
+			res = re.sub(r'//([^/]+)', '//' + data['ms'], data['channels'][index]['res'])
+
+			data['channels'][index]['res'] = res
 
 		return data['channels']
+
+	def update(data):
+		print('dlna()', 'update()')
+
+		data['channels'] = dlna.browse(level=1, objectid='hdhomerun://localhost:/')
+
+		data = to_JSON(data)
+
+		if int(config['DLNA']['CACHE']):
+			store(data)
+
+		return data
 
 	def retrieve():
 		print('dlna()', 'retrieve()')
@@ -651,16 +670,12 @@ def dlna(uri):
 		with open(cachefile, 'wb') as output:
 			output.write(cache)
 
-	#TODO
-	if not int(config['DLNA']['ENABLE']):
-		return False
-
 	if not uri.startswith('livetv'):
 		print('dlna()', 'error', 'not implemented')
 
 		return None
 
-	data = ''
+	data = {}
 
 	try:
 		if not uri.endswith('update') and int(config['DLNA']['CACHE']):
@@ -668,29 +683,35 @@ def dlna(uri):
 
 			if data:
 				data = json.loads(data)
+			else:
+				data = {}
 
 		dlna = DLNAcom()
 
-		if data and int(config['DLNA']['CACHE']):
-			data['ms'] = dlna.ms
-			data['mr'] = dlna.mr
-			data['udn'] = dlna.udn
-			data['channels'] = restore(data)
+		if uri.startswith('livetv/direct'):
+			chnum = int(uri.split('/')[2])
+			chnum -= 1
+			objectid = 'hdhomerun://localhost:/' + str(chnum) + '.ts'
+
+			data['channel'] = dlna.browse(level=1, objectid=objectid, browseflag='BrowseMetadata', requestedcount=1)
 
 			data = to_JSON(data)
-
-			store(data)
 		else:
-			data = {}
 			data['ms'] = dlna.ms
 			data['mr'] = dlna.mr
 			data['udn'] = dlna.udn
-			data['channels'] = dlna.browse(level=1, objectid='hdhomerun://localhost:/')
 
-			data = to_JSON(data)
+			if 'channels' in data and int(config['DLNA']['CACHE']):
+				data['channels'] = restore(data)
 
-			if int(config['DLNA']['CACHE']):
-				store(data)
+				if data['channels']:
+					data = to_JSON(data)
+
+					store(data)
+				else:
+					data = update(data)
+			else:
+				data = update(data)
 	except Exception as err:
 		print('dlna()', 'error', err)
 
@@ -699,6 +720,11 @@ def dlna(uri):
 
 def mirror(uri):
 	print('mirror()', uri)
+
+	if not int(config['MIRROR']['ENABLE']):
+		print('mirror()', 'not enabled')
+
+		return False
 
 	def get_ftpsource(ftp):
 		print('mirror()', 'get_ftpsource()')
@@ -714,7 +740,7 @@ def mirror(uri):
 
 				if dirlist:
 					path = os.path.basename(dirlist[0])
-					dirlist = ftp.nlst(dirlist + '/timeshift/' + path + '/' + path)
+					dirlist = ftp.nlst(dircwd + '/timeshift/' + path + '/' + path)
 
 					if dirlist:
 						return str(dirlist[0])
@@ -772,6 +798,17 @@ def mirror(uri):
 		else:
 			print('mirror()', 'stream()', 'streaming failed')
 
+	def dlna_trick(dlna):
+		print('mirror()', 'dlna_trick()')
+
+		try:
+			control = dlna.browse(level=1, objectid='control://localhost/exit.mpg', browseflag='BrowseMetadata', requestedcount=1)
+			urllib.request.urlopen(control[0]['res'], timeout=int(config['DLNA']['REQUEST_TIMEOUT']))
+		except (urllib.error.HTTPError, urllib.error.URLError):
+			pass
+		except Exception as err:
+			print('mirror()', 'dlna_trick()', 'error', err)
+
 	def close():
 		print('mirror()', 'close()')
 
@@ -783,11 +820,14 @@ def mirror(uri):
 		if 'mirror:threads' in globals():
 			print('mirror()', 'suppressthreads()')
 
-			if 'ftp' in globals()['mirror:threads']:
-				globals()['mirror:threads']['ftp'].close()
+			# if 'ftp' in globals()['mirror:threads']:
+			# 	globals()['mirror:threads']['ftp'].close()
 
 			if 'cache' in globals()['mirror:threads']:
 				globals()['mirror:threads']['cache'].kill()
+
+			if 'dlna' in globals()['mirror:threads']:
+				dlna_trick(globals()['mirror:threads']['dlna'])
 
 			if 'stream' in globals()['mirror:threads']:
 				globals()['mirror:threads']['stream'].kill()
@@ -805,10 +845,6 @@ def mirror(uri):
 
 		globals()['mirror:threads'] = {}
 
-	#TODO
-	if not int(config['MIRROR']['ENABLE']):
-		return False
-
 	try:
 		if uri == 'close':
 			return close()
@@ -825,31 +861,47 @@ def mirror(uri):
 
 			globals()['mirror:threads']['ftp'] = ftp
 
-			#TODO FIX
-			#src = NoneType
 			src = get_ftpsource(ftp)
-			srcurl = src.replace('@', ':' + config['FTP']['PASS'] + '@')
 
-			data['ftpurl'] = 'ftp://' + config['FTP']['USER'] + '@' + config['FTP']['HOST'] + src
+			if src:
+				srcurl = src.replace('@', ':' + config['FTP']['PASS'] + '@')
 
-		if int(config['MIRROR']['CACHE']):
+				data['ftpurl'] = 'ftp://' + config['FTP']['USER'] + '@' + config['FTP']['HOST'] + src
+
+		if int(config['MIRROR']['CACHE']) and src:
 			cachefile = config['MIRROR']['CACHE_FILE']
 			retrydelay = int(config['MIRROR']['CACHE_RETRY_DELAY'])
 
-			cache_thread = KThread(target=cache, args=[ftp, src, cachefile, retrydelay])
-			cache_thread.start()
+			thread_cache = KThread(target=cache, args=[ftp, src, cachefile, retrydelay])
+			thread_cache.start()
 
-			globals()['mirror:threads']['cache'] = cache_thread
+			globals()['mirror:threads']['cache'] = thread_cache
 
-		if int(config['MIRROR']['STREAM']):
+		if int(config['MIRROR']['DLNA']) and int(config['DLNA']['ENABLE']):
+			dlna = DLNAcom()
+
+			chnum = int(uri)
+			chnum -= 1
+			objectid = 'hdhomerun://localhost:/' + str(chnum) + '.ts'
+			dlnachannel = dlna.browse(level=1, objectid=objectid, browseflag='BrowseMetadata', requestedcount=1)
+			dlnaurl = dlnachannel[0]['res']
+
+			data['dlnaurl'] = dlnaurl
+
+			thread_dlna_trick = KThread(target=dlna_trick, args=[dlna])
+			thread_dlna_trick.start()
+
+			globals()['mirror:threads']['dlna'] = dlna
+
+		if int(config['MIRROR']['STREAM']) and src:
 			streamurl = 'rtp://' + config['MIRROR']['STREAM_HOST'] + ':' + config['MIRROR']['STREAM_PORT']
 
 			data['streamurl'] = streamurl
 
-			stream_thread = KThread(target=stream, args=[srcurl, streamurl, cachefile])
-			stream_thread.start()
+			thread_stream = KThread(target=stream, args=[srcurl, streamurl, cachefile])
+			thread_stream.start()
 
-			globals()['mirror:threads']['stream'] = stream_thread
+			globals()['mirror:threads']['stream'] = thread_stream
 	except Exception as err:
 		print('mirror()', 'error:', err)
 
