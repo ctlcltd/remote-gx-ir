@@ -2,7 +2,7 @@
 #  remote-gx-ir/server.py
 #  
 #  @author Leonardo Laureti <https://loltgt.ga>
-#  @version 2020-08-07
+#  @version 2020-08-08
 #  @license MIT License
 #  
 
@@ -11,7 +11,6 @@ import os
 import re
 import urllib.request, urllib.parse, urllib.error
 import json
-import html
 from io import BytesIO
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
@@ -257,7 +256,7 @@ class DLNAcom():
 			print('DLNAcom', 'get_devicedescription()', 'error', err)
 
 			return None
-		
+
 		# print('DLNAcom', 'test', 'get_devicedescription()', udn)
 
 		return udn
@@ -291,7 +290,7 @@ class DLNAcom():
 			print('DLNAcom', 'browse()', 'urllib.error', err)
 
 			return False
-		
+
 		# print('DLNAcom', 'test', 'browse()', response)
 
 		results = {}
@@ -319,7 +318,7 @@ class DLNAcom():
 					id = element.get('id')
 					name = element.find('./{http://purl.org/dc/elements/1.1/}title').text
 
-					result = {'id': id, 'name': html.escape(name)}
+					result = {'id': id, 'name': to_UTF8(name)}
 
 					res = element.find('./{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res')
 					if res.text:
@@ -360,6 +359,10 @@ class DLNAcom():
 		# print('DLNAcom', 'test', 'browse()', results)
 
 		return results
+
+
+def to_UTF8(obj):
+	return str(obj)
 
 
 def to_JSON(obj):
@@ -434,7 +437,7 @@ def chlist(uri):
 				elif count == 2:
 					db['list'][chid] = {}
 					db['list'][chid]['num'] = index
-					db['list'][chid]['name'] = html.escape(line)
+					db['list'][chid]['name'] = to_UTF8(line)
 				elif count == 3:
 					count = 0
 					chid = ''
@@ -466,7 +469,7 @@ def chlist(uri):
 				step = False
 				continue
 			elif not step and line.startswith('#NAME'):
-				ub['name'] = html.escape(line[6:].split('  ')[0])
+				ub['name'] = to_UTF8(line[6:].split('  ')[0])
 				step = True
 				continue
 
@@ -767,7 +770,8 @@ def mirror(uri):
 		streampipe += ' -fflags +discardcorrupt'
 		# streampipe += ' -fflags +discardcorrupt+fastseek+nobuffer'
 		streampipe += ' -stream_loop ' + config['MIRROR']['STREAM_LOOP']
-		streampipe += ' -sseof ' + config['MIRROR']['STREAM_SEEK_EOF']
+		if int(config['MIRROR']['STREAM_SEEK_EOF']) < 0:
+			streampipe += ' -sseof ' + config['MIRROR']['STREAM_SEEK_EOF']
 		streampipe += ' -re'
 
 		if int(config['MIRROR']['CACHE']) and cachefile:
@@ -820,6 +824,7 @@ def mirror(uri):
 		if 'mirror:threads' in globals():
 			print('mirror()', 'suppressthreads()')
 
+			#TODO FIX
 			# if 'ftp' in globals()['mirror:threads']:
 			# 	globals()['mirror:threads']['ftp'].close()
 

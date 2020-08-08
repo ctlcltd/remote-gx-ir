@@ -2,71 +2,91 @@
  * remote-gx-ir/script.js
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-07
+ * @version 2020-08-08
  * @license MIT License
  */
-
-/**
- * Changes XML to JSON
- * @link https://davidwalsh.name/convert-xml-json
- */
-function xmlToJson(xml) {
-  
-  // Create the return object
-  var obj = {};
-
-  if (xml.nodeType == 1) { // element
-    // do attributes
-    if (xml.attributes.length > 0) {
-    obj["@attributes"] = {};
-      for (var j = 0; j < xml.attributes.length; j++) {
-        var attribute = xml.attributes.item(j);
-        obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
-      }
-    }
-  } else if (xml.nodeType == 3) { // text
-    obj = xml.nodeValue;
-  }
-
-  // do children
-  if (xml.hasChildNodes()) {
-    for(var i = 0; i < xml.childNodes.length; i++) {
-      var item = xml.childNodes.item(i);
-      var nodeName = item.nodeName;
-      if (typeof(obj[nodeName]) == "undefined") {
-        if (nodeName === '#text') {
-          obj = item.nodeValue;
-        } else {
-          obj[nodeName] = xmlToJson(item);
-        }
-      } else {
-        if (typeof(obj[nodeName].push) == "undefined") {
-          var old = obj[nodeName];
-          obj[nodeName] = [];
-          obj[nodeName].push(old);
-        }
-        obj[nodeName].push(xmlToJson(item));
-      }
-    }
-  }
-  return obj;
-};
 
 function remote() {
   this.defaults = {
     'address': window.location.origin + '/service',
     'refresh': '100000',
-    'disconnect_routine': 'green,exit',
-    'fav': 'tv:1',
     'dlna': '1',
     'ftp': '0',
     'stream': '0',
+    'fav': 'tv:1',
+    'disconnect_routine': 'green,exit',
     'f1': '',
     'f2': '',
     'f3': '',
     'f4': ''
   };
-
+  this.sts = {
+    'server': {
+      'label': 'Server',
+      'fields': {
+        'address': {
+          'label': 'Address'
+        },
+        'refresh': {
+          'label': 'Update time',
+          'type': 'number'
+        },
+        'dlna': {
+          'label': 'DLNA',
+          'type': 'checkbox'
+        },
+        'ftp': {
+          'label': 'FTP',
+          'type': 'checkbox'
+        },
+        'stream': {
+          'label': 'Stream',
+          'type': 'checkbox'
+        }
+      }
+    },
+    'defaults': {
+      'label': 'Default settings',
+      'fields': {
+        'fav': {
+          'label': 'Default favourite',
+          'type': 'select',
+          'relationship': 'chlist',
+          'filter': 'lamedb|tv'
+        },
+        'disconnect_routine': {
+          'label': 'Routine to disconnect'
+        }
+      }
+    },
+    'funcs': {
+      'label': 'Function buttons',
+      'fields': {
+        'f1': {
+          'label': 'Red button',
+          'type': 'select',
+          'relationship': 'funcs'
+        },
+        'f2': {
+          'label': 'Green button',
+          'type': 'select',
+          'relationship': 'funcs'
+        },
+        'f3': {
+          'label': 'Yellow button',
+          'type': 'select',
+          'relationship': 'funcs'
+        },
+        'f4': {
+          'label': 'Blue button',
+          'type': 'select',
+          'relationship': 'funcs'
+        },
+      }
+    }
+  };
+  this.sfv = {};
+  this.locked = true;
   this.storage = window.sessionStorage;
 
   try {
@@ -112,7 +132,7 @@ remote.prototype.request = function(service, uri) {
   } else {
     throw 'Missing "service" argument.';
   }
-  
+
   uri = uri ? uri.toString() : '';
 
   const xhr = new XMLHttpRequest();
@@ -225,7 +245,7 @@ remote.prototype.currentChannel = function() {
 
       chcas.innerText = '';
 
-      if (self.rs.dlna) {
+      if (parseInt(self.rs.dlna) && self.storage.livetv) {
         const livetv = JSON.parse(self.storage.livetv);
         let dnum;
 
@@ -482,10 +502,23 @@ remote.prototype.connect = function(connected) {
   function reconnect() {
     console.log('connect()', 'reconnect()');
 
-    self.session();
+    self.remote.setAttribute('data-loading', '');
+
+    self.session(loaded);
+  }
+
+  function loaded() {
+    console.log('connect()', 'loaded()');
+
+    setTimeout(function() {
+      self.remote.removeAttribute('data-loading');
+
+      this.clearTimeout();
+    }, 300);
   }
 
   if (connected) {
+    this.locked = false;
     this.cnt.classList.remove('no-session');
 
     button.querySelector('.connect-icon-disconnect').removeAttribute('hidden', '');
@@ -498,6 +531,7 @@ remote.prototype.connect = function(connected) {
       disconnect();
     }
   } else {
+    this.locked = true;
     this.cnt.classList.add('no-session');
 
     button.querySelector('.connect-label-reconnect').removeAttribute('hidden');
@@ -522,7 +556,7 @@ remote.prototype.chlist = function(close) {
 
   var livetv;
 
-  if (self.rs.dlna) {
+  if (parseInt(self.rs.dlna)) {
     livetv = JSON.parse(self.storage.livetv);
   }
 
@@ -563,6 +597,10 @@ remote.prototype.chlist = function(close) {
           render_form(chlist);
         } else if (fav && fav in chlist) {
           render_table(chlist, fav);
+        } else {
+          if (self.storage.t_livetv != self.storage.p_livetv && self.storage.currentFav) {
+            render_table(chlist, self.storage.currentFav);
+          }
         }
       } else {
         throw 0;
@@ -591,11 +629,7 @@ remote.prototype.chlist = function(close) {
         optgroup = document.createElement('optgroup');
         optgroup.setAttribute('label', current_group.toUpperCase());
 
-        if (idx.indexOf('tv') != -1) {
-          select.insertBefore(optgroup, select.lastElementChild);
-        } else {
-          select.append(optgroup);
-        }
+        select.append(optgroup);
       }
 
       const option = document.createElement('option');
@@ -608,6 +642,10 @@ remote.prototype.chlist = function(close) {
     }
 
     select.onchange = listChange;
+
+    if (! self.storage.s_livetv) {
+      select.value = fav;
+    }
 
     render_table(data, fav);
 
@@ -634,6 +672,7 @@ remote.prototype.chlist = function(close) {
       tr.firstElementChild.nextElementSibling.innerText = data[current]['list'][chid].name;
       tr.lastElementChild.innerText = '';
 
+      tr.dataset.fav = current;
       tr.dataset.dnum = '';
       tr.dataset.res = '';
 
@@ -647,10 +686,11 @@ remote.prototype.chlist = function(close) {
           tr.dataset.dnum = dnum;
           tr.dataset.res = livetv['channels'][dnum].res;
           tr.lastElementChild.innerText = livetv['channels'][dnum]['cas'] ? '$' : '';
-
-          if (self.storage.t_livetv && current.indexOf('tv') === -1) {
-            tr.setAttribute('disabled', '');
-          }
+        } else {
+          tr.setAttribute('disabled', '');
+        }
+        if (self.storage.t_livetv && current.indexOf('tv') === -1) {
+          tr.setAttribute('disabled', '');
         }
       }
 
@@ -665,10 +705,14 @@ remote.prototype.chlist = function(close) {
     }
 
     table.rendered = true;
+
+    self.storage.setItem('p_livetv', self.storage.t_livetv ? self.storage.t_livetv : false);
   }
 
   function _zap() {
     console.info('chlist()', '_zap()', this.dataset.chnum);
+
+    self.storage.setItem('currentFav', this.dataset.fav);
 
     let cmds = this.dataset.chnum.split('').map(function(num) { return 'num_' + num; });
     self.routine.apply(self, cmds);
@@ -682,6 +726,7 @@ remote.prototype.chlist = function(close) {
 
     if (! self.storage.s_livetv) {
       self.storage.setItem('s_livetv', true);
+      self.storage.setItem('currentFav', 'lamedb');
     }
 
     if (this.dataset.dnum && this.dataset.res) {
@@ -694,7 +739,9 @@ remote.prototype.chlist = function(close) {
 
     console.info('chlist()', 'channelChange()', this.dataset.chnum, this.dataset.dnum);
 
-    if (self.rs.dlna && self.storage.t_livetv) {
+    if (self.storage.t_zap) {
+      return window.alert('ZAP\u2026');
+    } else if (parseInt(self.rs.dlna) && self.storage.t_livetv) {
       _livetv.call(this);
     } else {
       _zap.call(this);
@@ -711,8 +758,6 @@ remote.prototype.chlist = function(close) {
     event.preventDefault();
 
     console.info('chlist()', 'listChange()', this.value);
-
-    self.storage.setItem('currentFav', this.value);
 
     list(this.value);
   }
@@ -946,7 +991,7 @@ remote.prototype.mirror = function(close) {
       self.error(xhr, err);
     }
 
-    if (self.rs.dlna && ! (self.rs.ftp || self.rs.stream)) {
+    if (parseInt(self.rs.dlna) && ! (parseInt(self.rs.ftp) || parseInt(self.rs.stream))) {
       const mirror = self.request('mirror', '/' + chnum);
 
       mirror.then(stream).catch(self.error);
@@ -960,7 +1005,7 @@ remote.prototype.mirror = function(close) {
       }, 100);
 
       setTimeout(function() {
-        const mirror = self.request('mirror', chnum);
+        const mirror = self.request('mirror', '/' + chnum);
 
         mirror.then(stream).catch(self.error);
 
@@ -974,7 +1019,7 @@ remote.prototype.mirror = function(close) {
 
     console.log('mirror()', 'stop()');
 
-    if (self.rs.dlna && ! (self.rs.ftp || self.rs.stream)) {
+    if (parseInt(self.rs.dlna) && ! (parseInt(self.rs.ftp) || parseInt(self.rs.stream))) {
       self.control('stop');
     } else {
       self.routine('stop', 'channelup', 'channeldown');
@@ -1003,6 +1048,10 @@ remote.prototype.mirror = function(close) {
     return hide();
   }
 
+  if (this.storage.t_zap) {
+    return window.alert('ZAP\u2026');
+  }
+
   if (this.setup.hasAttribute('hidden')) {
     show();
   } else {
@@ -1027,6 +1076,23 @@ remote.prototype.zap = function(checked) {
 
   if (typeof checked === 'undefined') {
     this.infobar.querySelector('#zap input[type="checkbox"]').checked = this.storage.t_zap;
+    this.sfv['chlist'] = {'lamedb': 'ALL'};
+
+    try {
+      const chlist = JSON.parse(this.storage.chlist);
+
+      for (const idx in chlist) {
+        if (Object.keys(chlist[idx]['list']).length < 2) {
+          continue;
+        }
+
+        this.sfv['chlist'][idx] = chlist[idx]['name'];
+      }
+    } catch (err) {
+      console.error('zap()');
+
+      this.error(null, err);
+    }
 
     return;
   }
@@ -1034,7 +1100,7 @@ remote.prototype.zap = function(checked) {
   if (this.storage.t_zap) {
     this.storage.removeItem('t_zap');
   } else {
-    this.storage.setItem('t_zap', 1);    
+    this.storage.setItem('t_zap', 1);
   }
 }
 
@@ -1064,6 +1130,9 @@ remote.prototype.livetv = function(checked) {
 remote.prototype.settings = function(close) {
   const self = this;
   const form = this.setup.querySelector('form');
+  const form_ph = form.firstElementChild;
+  const form_lt = form.lastElementChild;
+  const fieldset_ph = form.firstElementChild.nextElementSibling;
 
   console.log('settings()', close);
 
@@ -1120,43 +1189,163 @@ remote.prototype.settings = function(close) {
   function render(data) {
     console.log('settings()', 'render()');
 
-    const fieldset = document.createElement('fieldset');
-    const fieldset_ph = form.firstElementChild;
+    for (const s in self.sts) {
+      const fieldset = document.createElement('fieldset');
+      const legend = document.createElement('legend');
+      legend.innerText = self.sts[s]['label'];
 
-    for (const field in data) {
-      const row = data[field];
+      fieldset.append(legend);
 
-      const div = document.createElement('div');
-      const label = document.createElement('label');
-      const input = document.createElement('input');
+      for (const f in self.sts[s]['fields']) {
+        const row = data[f];
+        const field = self.sts[s]['fields'][f];
 
-      label.innerText = field;
-      input.setAttribute('type', 'text');
-      input.value = row ? row.toString() : '';
+        const div = document.createElement('div');
+        const label = document.createElement('label');
 
-      div.append(label);
-      div.append(input);
+        label.innerText = field['label'];
+        div.append(label);
 
-      fieldset.append(div);
+        if (field['type'] === 'select') {
+          const select = document.createElement('select');
+          let values = {};
+          if ('relationship' in field) {
+            if ('filter' in field) {
+              for (const v in self.sfv[field['relationship']]) {
+                if (new RegExp(field['filter']).test(v)) {
+                  values[v] = self.sfv[field['relationship']][v];
+                }
+              }
+            } else {
+              values = self.sfv[field['relationship']];
+            }
+          } else if ('values' in field) {
+            values = field['values'];
+          }
+          for (const v in values) {
+            const option = document.createElement('option');
+            option.setAttribute('value', v); 
+            option.innerText = values[v];
+            select.append(option);
+          }
+          select.name = f;
+          select.value = row;
+          div.append(select);
+        } else if (field['type'] === 'checkbox') {
+          const input = document.createElement('input');
+          input.name = f;
+          input.setAttribute('type', 'checkbox');
+          if (row) {
+            input.checked = true;
+          }
+          div.append(input);
+        } else if (field['type'] === 'number') {
+          const input = document.createElement('input');
+          input.name = f;
+          input.setAttribute('type', 'number');
+          input.min = field['min'];
+          input.max = field['max'];
+          input.value = row ? row.toString() : '';
+          div.append(input);
+        } else {
+          const input = document.createElement('input');
+          input.name = f;
+          input.setAttribute('type', 'text');
+          input.value = row ? row.toString() : '';
+          div.append(input);
+        }
 
-      form.insertBefore(fieldset, fieldset_ph);
+        fieldset.append(div);
+
+        form.insertBefore(fieldset, fieldset_ph);
+      }
     }
+
+    fieldset_ph.firstElementChild.lastElementChild.onclick = update;
+    form.onsubmit = save;
+    form.onreset = reset;
 
     form.rendered = true;
   }
 
-  function save() {
+  function save(event) {
+    event.preventDefault();
+
     console.log('settings()', 'save()');
 
-    // var data = {};
+    var data = {};
 
-    // self.rs = data;
+    loading(this.elements);
+
+    for (const el of this.elements) {
+      if (el.tagName != 'FIELDSET' && el.tagName != 'BUTTON' && ! (el.type && el.type === 'button')) {
+        if (el.type === 'checkbox') {
+          data[el.name] = el.value === 'on' ? '1' : '0';
+        } else {
+          data[el.name] = el.value;
+        }
+      }
+    }
+
+    if (Object.keys(data).length) {
+      self.storage.setItem('settings', JSON.stringify(data));
+      self.rs = JSON.parse(self.storage.settings);
+    } else {
+      error(null, 'Error handling data.');
+    }
+
+    loaded(this.elements);
   }
 
-  function reset() {
+  function reset(event) {
+    event.preventDefault();
+
+    loading(this.elements);
+
     console.log('settings()', 'reset()');
 
+    self.stora.removeItem('settings');
+    self.storage.setItem('settings', JSON.stringify(self.defaults));
+    self.storage.setItem('session', new Date().toJSON());
+    self.rs = JSON.parse(self.storage.settings);
 
+    self.session();
+    self.zap();
+    self.livetv();
+
+    loaded(this.elements);
+  }
+
+  function update(event) {
+    event.preventDefault();
+
+    loading([this]);
+
+    console.log('settings()', 'update()');
+
+    self.update(true);
+
+    loaded([this]);
+  }
+
+  function loading(elements) {
+    for (const el of elements) {
+      if (el != form_ph && el != form_lt) {
+        el.setAttribute('data-loading', '');
+      }
+    }
+  }
+
+  function loaded(elements) {
+    setTimeout(function() {
+      for (const el of elements) {
+        if (el != form_ph && el != form_lt) {
+          el.removeAttribute('data-loading');
+        }
+      }
+
+      this.clearTimeout();
+    }, 300);
   }
 
   if (close) {
@@ -1170,7 +1359,7 @@ remote.prototype.settings = function(close) {
   }
 }
 
-remote.prototype.session = function() {
+remote.prototype.session = function(callback) {
   const self = this;
   const session = this.request('command', '/web/session');
   const timestamp = new Date(self.storage.session);
@@ -1207,7 +1396,11 @@ remote.prototype.session = function() {
         }
 
         if (! self.tick && self.rs.refresh != '0') {
-          self.tick = setInterval(self.status.bind(self), parseInt(self.rs.refresh));
+          self.tick = setInterval(self.session.bind(self), parseInt(self.rs.refresh));
+        }
+
+        if (callback && typeof callback === 'function') {
+          callback();
         }
       } else {
         if (self.tick) {
@@ -1223,6 +1416,10 @@ remote.prototype.session = function() {
       self.connect(false);
 
       self.error(xhr, err);
+
+      if (callback && typeof callback === 'function') {
+        callback();
+      }
     }
   }
 
@@ -1231,11 +1428,15 @@ remote.prototype.session = function() {
 
 const _remote = new remote();
 
-function _proxy(callee) {
+function _proxy(callee, nolock) {
   return function(event) {
     const currentTarget = event.currentTarget;
 
     event.preventDefault();
+
+    if (! nolock && _remote.locked) {
+      return false;
+    }
 
     _remote[callee].apply(_remote, Object.values(arguments).slice(1));
 
@@ -1250,17 +1451,60 @@ function _proxy(callee) {
 }
 
 function ir() {}
-ir.prototype.connect = _proxy('connect');
-ir.prototype.update = _proxy('update');
+ir.prototype.connect = _proxy('connect', true);
+ir.prototype.settings = _proxy('settings', true);
 ir.prototype.chlist = _proxy('chlist');
 ir.prototype.mirror = _proxy('mirror');
 ir.prototype.fav = _proxy('fav');
 ir.prototype.tv_radio = _proxy('tv_radio');
 ir.prototype.zap = _proxy('zap');
 ir.prototype.livetv = _proxy('livetv');
-ir.prototype.settings = _proxy('settings');
 ir.prototype.control = _proxy('control');
 ir.prototype.return = _proxy('return');
 ir.prototype.prech = _proxy('prech');
 
 const _ir = window.ir = new ir();
+
+
+/**
+ * Changes XML to JSON
+ * @link https://davidwalsh.name/convert-xml-json
+ */
+function xmlToJson(xml) {
+  var obj = {};
+
+  if (xml.nodeType == 1) {
+    if (xml.attributes.length > 0) {
+    obj["@attributes"] = {};
+      for (var j = 0; j < xml.attributes.length; j++) {
+        var attribute = xml.attributes.item(j);
+        obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
+      }
+    }
+  } else if (xml.nodeType == 3) {
+    obj = xml.nodeValue;
+  }
+
+  if (xml.hasChildNodes()) {
+    for(var i = 0; i < xml.childNodes.length; i++) {
+      var item = xml.childNodes.item(i);
+      var nodeName = item.nodeName;
+      if (typeof(obj[nodeName]) == "undefined") {
+        if (nodeName === '#text') {
+          obj = item.nodeValue;
+        } else {
+          obj[nodeName] = xmlToJson(item);
+        }
+      } else {
+        if (typeof(obj[nodeName].push) == "undefined") {
+          var old = obj[nodeName];
+          obj[nodeName] = [];
+          obj[nodeName].push(old);
+        }
+        obj[nodeName].push(xmlToJson(item));
+      }
+    }
+  }
+
+  return obj;
+}

@@ -2,7 +2,7 @@
  * remote-gx-ir/style.css
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-07
+ * @version 2020-08-08
  * @license MIT License
  */
 
@@ -48,9 +48,10 @@ body {
   height: 0;
 }
 
-[hidden] {
-  display: none !important;
-}
+[hidden] { display: none !important; }
+[disabled] { opacity: .8; }
+[readonly] { opacity: .9; }
+[data-loading] { animation: infinite loading 600ms linear alternate; }
 
 #cnt {
   position: relative;
@@ -88,8 +89,12 @@ body {
   padding: 1rem;
 }
 .overlay-top {
+  position: absolute;
+  right: 1.5rem;
+  left: 1.5rem;
   clear: both;
   min-height: 3rem;
+  z-index: 9999;
 }
 .overlay-top .close {
   float: right;
@@ -111,6 +116,7 @@ body {
 .remote > div {
   margin: 0 1rem;
 }
+.infobar,
 .remote > nav {
   padding: 0 1rem;
 }
@@ -119,8 +125,6 @@ body {
   display: block;
   width: 100%;
   border: 0;
-  overflow-x: scroll;
-  -webkit-overflow-scrolling: touch;
 }
 .table table {
   width: 100%;
@@ -129,7 +133,15 @@ body {
 .table.scrollable,
 .form.scrollable {
   position: relative;
-  height: calc(100% - 2rem);
+  height: 100%;
+}
+.table.scrollable {
+  overflow: scroll;
+  -webkit-overflow-scrolling: touch;
+}
+.form.scrollable form {
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
 }
 .form.scrollable form {
   height: 100%;
@@ -154,9 +166,7 @@ body {
 .table.clickable tbody tr:focus {
   background: #181818;
 }
-.form.flex {
-  height: calc(100% - 2rem);
-}
+.form.flex,
 .form.flex form,
 .form.flex .table.scrollable {
   height: 100%;
@@ -185,7 +195,6 @@ th {
   font-weight: normal;
   text-transform: uppercase;
 }
-
 th, td {
   padding: 1rem 1rem;
   font-size: .8rem;
@@ -199,7 +208,6 @@ td {
 tr:nth-child(2) td, tr:nth-last-child(1) td {
   border: 0;
 }
-
 th { background: #242424; }
 
 form, fieldset {
@@ -207,32 +215,37 @@ form, fieldset {
   padding: 0;
   border: 0;
 }
-
 form {
-  margin: 0 0 4rem 0;
+  margin: 0;
 }
 
 fieldset, fieldset > div {
   margin: 0 0 1.5rem 0;
 }
-
-fieldset > p, legend {
-  margin: 0 0 2rem 0;
-  font-size: 1rem;
+fieldset:last-child {
+  margin: 0;
+}
+fieldset > div {
   text-align: left;
 }
 
+form > p {
+  margin: 0 0 2rem 0;
+  font-size: 1.1rem;
+}
+legend {
+  margin: 0 0 1.5rem 0;
+  font-size: .95rem;
+  text-align: left;
+}
 label {
   display: block;
   margin: 0 0 .5rem 0;
-  font-size: .7rem;
-  text-transform: uppercase;
-  text-align: left;
+  font-size: .8rem;
 }
 
 input, textarea, select {
   display: inline-block;
-  width: 100%;
   padding: .6rem .5rem;
   font-size: .9rem;
   color: #fff;
@@ -245,33 +258,54 @@ input, textarea, select {
   box-sizing: border-box;
   transition: border ease-out 50ms;
 }
-
+input[type="text"], textarea, select {
+  width: 100%;
+}
+input[type="checkbox"] {
+  padding: .3rem;
+}
+input[type="checkbox"]:after {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  border: .5rem solid transparent;
+}
+input[type="checkbox"]:checked:after {
+  border-color: initial;
+}
 input, textarea, select {
   box-shadow: 0 0 .1rem 0 transparent;
   opacity: .97;
 }
-
 input + input, textarea + input, select + input, button + input, input + textarea, textarea + textarea, select + textarea, button + textarea, input + select, textarea + select, select + select, button + select, input + button, textarea + button, select + button, button + button {
   margin-left: 1rem;
 }
-
 input:focus, textarea:focus, select:focus {
   background: #383838;
   border-color: #262626;
   box-shadow: 0 0 .1rem 0 #111;
   opacity: 1;
 }
-
 input[placeholder],
 textarea[placeholder] {
   padding: 1.1rem .5rem;
   margin: 0 0 .4rem 0;
 }
-
 textarea {
   min-height: 6rem;
   font-size: .8rem;
   line-height: 1.6;
+}
+
+.overlay form > p {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  height: 2rem;
+  background: #202020;
+  box-shadow: 0 .3rem .4rem .8rem #202020;
+  z-index: 1;
 }
 
 .switch label {
@@ -308,10 +342,6 @@ textarea {
   box-shadow: .02rem .02rem .1rem rgba(0,0,0,.5);
   transition: 50ms ease-out;
 }
-.switch input:checked + .slider,
-.switch input:focus + .slider {
-  background: #1c1c1c;
-}
 .switch input:checked + .slider:before {
   transform: translateX(.95rem);
 }
@@ -338,7 +368,6 @@ button {
 button:focus {
   background: gray;
 }
-
 button.big {
   padding: 1rem 2.5rem;
   font-size: 1.1rem;
@@ -354,7 +383,6 @@ button[type="submit"] {
 button[type="submit"]:focus {
   background: cadetblue;
 }
-
 button span {
   position: relative;
   display: inline-block;
@@ -421,21 +449,11 @@ button.close {
   box-shadow: none;
 }
 
-.connect .connect-icon {
-  left: -.2rem;
-}
-.connect .connect-label {
-  display: none;
-  margin-left: .4rem;
-  font-weight: bold;
-}
-
 .infobar .switch {
   display: inline-block;
 }
 .infobar .switch span:first-child {
   display: inline-block;
-  height: 1.9rem;
   margin: 0;
   font-size: .7rem;
   font-weight: bold;
@@ -450,17 +468,18 @@ button.close {
 .infobar .switch .slider:before {
   background: #999;
 }
+.infobar .switch + .switch {
+  margin-left: .5rem;
+}
+
+.zap.switch input:checked + .slider { background: #03474d; }
+.zap.switch input:focus + .slider { background: #033c3f; }
+
 .livetv.switch input:checked + .slider { background: #123e75; }
 .livetv.switch input:focus + .slider { background: #06356f; }
 
-.top button span:first-of-type {
+.top button span {
   left: -.3rem;
-}
-.top .update-label,
-.top .settings-label {
-  display: none;
-  margin-left: .3rem;
-  font-weight: bold;
 }
 
 .ctrl button {
@@ -655,24 +674,32 @@ button.close {
 .infobar {
   position: relative;
   margin: 0;
-  padding: .5rem 0;
+  padding-top: .5rem;
+  padding-bottom: .5rem;
   height: 3rem;
   text-align: left;
 }
-.infobar > div {
+.infobar div {
   display: inline-block;
 }
-.infobar > .connect {
-  float: left;
-  margin: 0 1rem 0 2rem;
+.infobar > div:first-child + div {
+  margin-left: .5rem;
 }
-.infobar > .sending {
+.infobar div:last-child {
+  float: right;
+  margin: 0 -.3rem;
+}
+.infobar div button {
+  margin: .2rem .6rem;
+}
+.infobar .sending {
   display: block;
 }
 
 .sending {
-  position: fixed;
-  top: .9rem;
+  position: absolute;
+  top: .5rem;
+  left: .4rem;
   width: .7rem;
   height: .68rem;
   background: red;
@@ -680,10 +707,22 @@ button.close {
   border-radius: 50%;
   opacity: .8;
   transition: 50ms opacity ease;
+  transform: scale(.8);
   z-index: 1111;
 }
 .sending[hidden] {
   opacity: 0;
+}
+
+.connect .connect-icon,
+.sets .sets-icon {
+  left: -.2rem;
+}
+.connect .connect-label,
+.sets .sets-label {
+  display: none;
+  margin-left: .4rem;
+  font-weight: bold;
 }
 
 .connect-icon-disconnect,
@@ -703,6 +742,16 @@ button.close {
 .connect-icon-reconnect {
   transform: rotate(30deg);
   border-width: .1rem;
+}
+
+.sets-icon {
+  top: .02rem;
+  width: .45rem;
+  height: .45rem;
+  margin: 0 -.2rem 0 0;
+  border: .1rem dotted;
+  border-radius: 50%;
+  transform: scale(2);
 }
 
 .display {
@@ -738,28 +787,26 @@ button.close {
 
 .channel {
   display: inline-block;
+  width: calc(100% - 3rem);
   padding: .6rem 0;
 }
 
-.chcas,
 .chnum,
 .chname {
   display: inline-block;
-}
-.chcas {
-  position: absolute;
-  right: 4.5rem;
-  bottom: .3rem;
-  width: .4rem;
-  font-size: .6rem;
-  color: gold;
-  opacity: .4;
 }
 .chnum {
   width: 2.6rem;
   font-size: 1.1rem;
   margin-right: .4rem;
   color: #ccc;
+}
+.chname {
+  max-width: calc(100% - 4rem);
+  height: 1.05rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow-x: hidden;
 }
 .chdigits {
   position: absolute;
@@ -769,10 +816,21 @@ button.close {
   left: 0;
   padding: .2rem 1rem;
   font-size: 1.2rem;
-  line-height: 4rem;
+  line-height: 3.8rem;
   letter-spacing: .6rem;
   background: #2c2c2c;
   z-index: 2;
+}
+
+.chcas {
+  position: absolute;
+  right: 4.5rem;
+  bottom: .3rem;
+  width: .4rem;
+  display: inline-block;
+  font-size: .6rem;
+  color: gold;
+  opacity: .4;
 }
 
 .volume,
@@ -780,14 +838,12 @@ button.close {
   font-size: .5rem;
   white-space: nowrap;
 }
-
 .volume span,
 .signal span {
   display: inline-block;
   margin-left: .3rem;
   text-align: center;
 }
-
 .volume span:first-child,
 .signal span:first-child {
   padding: .1rem;
@@ -802,17 +858,14 @@ button.close {
   right: 1rem;
   height: 2.2rem;
 }
-
 .volume.mute .volume-label { color: grey; }
 .volume.mute .volume-level { opacity: .6; }
-
 .volume .volume-label {
   display: block;
   float: none;
   margin: .5rem 0 .3rem .3rem;
   padding: 0;
 }
-
 .volume-level {
   position: relative;
   width: 2.2rem;
@@ -825,7 +878,6 @@ button.close {
   z-index: 1;
   overflow: hidden;
 }
-
 .volume-level:before {
   content: '';
   position: absolute;
@@ -845,12 +897,10 @@ button.close {
   bottom: .2rem;
   clear: both;
 }
-
 .signal .signal-label {
   float: right;
   margin-left: .5rem;
 }
-
 .signal span:not(:first-child) {
   position: relative;
   width: 4.2rem;
@@ -861,7 +911,6 @@ button.close {
   z-index: 1;
   overflow: hidden;
 }
-
 .signal span:not(:first-child):before {
   content: '';
   position: absolute;
@@ -874,21 +923,18 @@ button.close {
   opacity: .95;
   z-index: -1;
 }
-
 .signal-strength:before { background: firebrick; }
 .signal-quality:before { background: royalblue; }
 
-.chlist .overlay-top {
-  position: absolute;
-  right: 1.5rem;
-  left: 1.5rem;
-  z-index: 9999;
-}
+.chlist .form { height: calc(100% - 2rem); }
+.chlist fieldset:first-child { margin-bottom: 1rem; }
+.chlist table { overflow-x: hidden; }
 .chlist td { font-weight: bold; }
 .chlist th:first-child, .chlist td:first-child { width: 3rem; }
 .chlist th:last-child { text-indent: -999pt; }
 .chlist td:nth-child(2) { text-overflow: ellipsis; white-space: nowrap; overflow-x: hidden; }
-.chlist td:last-child { font-size: .65rem; font-weight: normal; color: gold; opacity: .4; text-align: center; }
+.chlist td:last-child { width: 1rem; font-size: .65rem; font-weight: normal; color: gold; opacity: .4; text-align: center; }
+.chlist tr[disabled] td { opacity: .3; }
 
 .arrow {
   position: relative;
@@ -1031,12 +1077,60 @@ button.close {
   background: #636363;
 }
 
-.no-session .remote button:not(.top-settings),
-.no-session .remote .switch {
+.update-icon {
+  left: -.3rem;
+  top: -.1rem;
+  width: 1.2rem;
+  height: 1rem;
+  margin: -1rem 0;
+  border: .1rem dashed;
+  border-radius: 50%;
+  border-block-start-style: initial;
+  border-block-end-style: initial;
+  transform: rotate(-30deg) scale(.8);
+}
+.update-icon:before,
+.update-icon:after {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border: .3rem solid;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+.update-icon:after {
+  border-right-color: transparent;
+  transform: translate(-45%, -60%);
+}
+.update-icon:before {
+  border-left-color: transparent;
+  transform: translate(25%, 100%);
+}
+
+.no-session .infobar .switch,
+.no-session .remote button {
   opacity: .5;
 }
 .no-session .display > span {
   opacity: .75;
+}
+.no-session .infobar:before,
+.no-session .remote:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  z-index: 10;
+}
+.no-session .infobar:before {
+  right: 6rem;
+}
+.no-session .remote:before {
+  top: 3rem;
 }
 
 
@@ -1085,27 +1179,22 @@ button.close {
     right: 1.5rem;
     left: 1.5rem;
   }
-  .table.scrollable,
-  .form.scrollable {
-    height: calc(100% - 3rem);
-  }
   .controls > .bottom {
     margin-right: 0;
     margin-left: 0;
   }
-  .connect .connect-label {
+  .sending {
+    top: .8rem;
+    left: .7rem;
+    transform: none;
+  }
+  .connect .connect-label,
+  .sets button .sets-label {
     display: inline-block;
   }
-  .connect button .connect-icon {
+  .connect button .connect-icon,
+  .sets button .sets-icon {
     left: -.2rem;
-  }
-  .top .update-label,
-  .top .settings-label {
-    display: inline-block;
-  }
-  .top button.update-icon,
-  .top button.settings-icon {
-    left: -.3rem;
   }
   .bottom {
     padding-top: 1rem;
@@ -1126,5 +1215,8 @@ button.close {
   }
   .display {
     margin: 0 0 3vh 0;
+  }
+  .no-session .infobar:before {
+    right: 15rem;
   }
 }

@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2d2f2d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" id="appname" content="REMOTE-GX-IR">
 <link rel="stylesheet" href="style.css">
 <title>REMOTE-GX-IR</title>
 </head>
@@ -11,7 +16,6 @@
 <div id="cnt" class="no-session">
 <div id="infobar" class="infobar">
   <div id="sending" class="sending" hidden></div>
-  <div id="connect" class="connect"><button class="infobar-connect" onclick="ir.connect(arguments[0])"><span class="connect-icon connect-icon-disconnect" hidden></span><span class="connect-icon connect-icon-reconnect"></span> <span class="connect-label connect-label-disconnect" hidden>LOGOUT</span><span class="connect-label connect-label-reconnect">LOGIN</span></button></div>
   <div id="zap" class="zap switch">
     <span class="zap-label">ZAP</span>
     <label>
@@ -25,6 +29,14 @@
       <input type="checkbox" onclick="this.blur()" onchange="ir.livetv(arguments[0], this.checked)">
       <span class="slider"></span>
     </label>
+  </div>
+  <div>
+    <div id="connect" class="connect">
+      <button class="infobar-connect" onclick="ir.connect(arguments[0])"><span class="connect-icon connect-icon-disconnect" hidden></span><span class="connect-icon connect-icon-reconnect"></span> <span class="connect-label connect-label-disconnect" hidden>DISCONNECT</span><span class="connect-label connect-label-reconnect">RECONNECT</span></button>
+    </div>
+    <div id="sets" class="sets">
+      <button class="infobar-sets" onclick="ir.settings(arguments[0])"><span class="sets-icon"></span> <span class="sets-label">SETTINGS</span></button>
+    </div>
   </div>
 </div>
 <main id="remote" class="remote view">
@@ -43,18 +55,14 @@
     <span class="signal-strength" title="STRENGTH">0%</span>
     <span class="signal-quality" title="QUALITY">0%</span>
   </span>
-  <span class="chcas" title="CAS">$</span>
+  <span>
+    <span class="chcas" title="CAS">$</span>
+  </span>
 </div>
 <nav id="controls" class="controls">
   <div class="top">
-    <div>
-      <button class="top-chlist" onclick="ir.chlist(arguments[0])"><span class="chlist-icon"></span> CHLIST</button>
-      <button class="top-mirror" onclick="ir.mirror(arguments[0])"><span class="mirror-icon"></span> MIRROR</button>
-    </div>
-    <div>
-      <button class="top-update" onclick="ir.update(arguments[0], true)"><span class="update-icon">%</span> <span class="update-label">UPDATE</span></button>
-      <button class="top-settings" onclick="ir.settings(arguments[0])"><span class="settings-icon">*</span> <span class="settings-label">SETTINGS</span></button>
-    </div>
+    <button class="top-chlist" onclick="ir.chlist(arguments[0])"><span class="chlist-icon"></span> CHLIST</button>
+    <button class="top-mirror" onclick="ir.mirror(arguments[0])"><span class="mirror-icon"></span> MIRROR</button>
   </div>
   <div class="ctrl">
     <div class="ctrl-left">
@@ -109,7 +117,7 @@
           <button onclick="ir.control(arguments[0], 'epg')">EPG</button>
           <button onclick="ir.control(arguments[0], 'v_format')">VIDEO</button>
           <button onclick="ir.control(arguments[0], 'audio')">AUDIO</button>
-          <button onclick="ir.control(arguments[0], 'power')">POWER</button>
+          <button onclick="ir.control(arguments[0], 'power', false, true)">POWER</button>
           <button onclick="ir.control(arguments[0], 'mute', false, 'currentVolume')">MUTE</button>
         </div>
       </div>
@@ -149,9 +157,11 @@
         <div class="table scrollable clickable">
           <table>
             <thead>
-              <th>CHNUM</th>
-              <th>CHNAME</th>
-              <th>CHCAS</th>
+              <tr>
+                <th>CHNUM</th>
+                <th>CHNAME</th>
+                <th>CHCAS</th>
+              </tr>
             </thead>
             <tbody>
               <tr hidden>
@@ -174,7 +184,8 @@
     <button class="close" onclick="ir.mirror(arguments[0], true)" title="CLOSE">&times;</button>
   </div>
   <div class="form flex">
-    <form action>
+    <form>
+      <p class="form-label">Mirror</p>
       <fieldset id="ftp" hidden>
         <label for="ftpurl">FTP URL</label>
         <input class="ftpurl" id="ftpurl" type="text" readonly>
@@ -199,11 +210,18 @@
     <button class="close" onclick="ir.settings(arguments[0], true)" title="CLOSE">&times;</button>
   </div>
   <div class="form scrollable flex">
-    <form action>
+    <form>
+      <p class="form-label">Settings</p>
+      <fieldset>
+        <div>
+          <label>Update channels data</label>
+          <button class="update"><span class="update-icon"></span> <span class="update-label">UPDATE</span></button>
+        </div>
+      </fieldset>
       <fieldset>
         <button type="submit">SAVE</button>
         <button type="reset">RESET</button>
-        <button onclick="window.event.preventDefault(); window.sessionStorage.clear(); window.alert('storage cleared'); this.blur();">TEST</button>
+        <button type="button" onclick="window.event.preventDefault(); window.sessionStorage.clear(); window.alert('storage cleared'); this.blur();">TEST</button>
       </fieldset>
     </form>
   </div>
