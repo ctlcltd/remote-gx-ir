@@ -2,7 +2,7 @@
  * remote-gx-ir/script.js
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-08
+ * @version 2020-08-09
  * @license MIT License
  */
 
@@ -85,7 +85,26 @@ function remote() {
       }
     }
   };
-  this.sfv = {};
+  this.sfv = {
+    'chlist': {'lamedb': 'ALL'},
+    'funcs': {
+      '': 'None',
+      'iptv': 'IPTV in memory',
+      'm3u': 'Autoget m3u playlist',
+      'stalker1': 'Portal 1 Stalker',
+      'stalker2': 'Portal 2 Stalker',
+      'stalker3': 'Portal 3 Stalker',
+      'stalker4': 'Portal 4 Stalker',
+      'youtube': 'YouTube',
+      'xtream': 'Xtream IPTV',
+      'webtv': 'WebTV',
+      'webradio': 'Internet radio',
+      'wheater': 'Wheater',
+      'redtube': 'RedTube',
+      'dlna': 'DLNA',
+      'kodi': 'KODI'
+    }
+  };
   this.locked = true;
   this.storage = window.sessionStorage;
 
@@ -122,9 +141,8 @@ function remote() {
   this.stream = document.getElementById('mirror');
 
   this.session();
-  this.zap();
-  this.livetv();
 }
+
 
 remote.prototype.request = function(service, uri) {
   if (service) {
@@ -152,6 +170,7 @@ remote.prototype.request = function(service, uri) {
   });
 }
 
+
 remote.prototype.status = function(refresh) {
   const self = this;
 
@@ -171,6 +190,42 @@ remote.prototype.status = function(refresh) {
   this.currentSignal();
   this.currentVolume();
 }
+
+
+remote.prototype.init = function() {
+  const self = this;
+
+  console.log('init()');
+
+  if (! this.storage.chlist) {
+    return done();
+  }
+
+  function done() {
+    self.status();
+    self.zap();
+    self.livetv();
+  }
+
+  try {
+    const chlist = JSON.parse(this.storage.chlist);
+
+    for (const idx in chlist) {
+      if (Object.keys(chlist[idx]['list']).length < 2) {
+        continue;
+      }
+
+      this.sfv['chlist'][idx] = chlist[idx]['name'];
+    }
+  } catch (err) {
+    console.error('zap()');
+
+    this.error(null, err);
+  }
+
+  done();
+}
+
 
 remote.prototype.routine = function() {
   const self = this;
@@ -212,6 +267,7 @@ remote.prototype.routine = function() {
     }, 150);
   }
 }
+
 
 remote.prototype.currentChannel = function() {
   const self = this;
@@ -266,6 +322,7 @@ remote.prototype.currentChannel = function() {
   subservices.then(command).catch(this.error);
 }
 
+
 remote.prototype.currentSignal = function() {
   const self = this;
   const signal = this.request('command', '/web/signal');
@@ -293,6 +350,7 @@ remote.prototype.currentSignal = function() {
 
   signal.then(command).catch(this.error);
 }
+
 
 remote.prototype.currentVolume = function() {
   const self = this;
@@ -328,6 +386,7 @@ remote.prototype.currentVolume = function() {
   volume.then(command).catch(this.error);
 }
 
+
 remote.prototype.return = function() {
   const self = this;
   var count = 0;
@@ -349,6 +408,7 @@ remote.prototype.return = function() {
   var timer = setInterval(command, 75);
 }
 
+
 remote.prototype.prech = function() {
   const self = this;
 
@@ -363,6 +423,7 @@ remote.prototype.prech = function() {
   }, 100);
 }
 
+
 remote.prototype.parser = function(xml) {
   const parser = new DOMParser();
   const docXml = parser.parseFromString(xml, 'text/xml');
@@ -370,9 +431,11 @@ remote.prototype.parser = function(xml) {
   return xmlToJson(docXml);
 }
 
+
 remote.prototype.error = function(xhr, err) {
   console.log('error()', xhr, err);
 }
+
 
 remote.prototype.control = function(cmd, wait, refresh) {
   const self = this;
@@ -430,6 +493,7 @@ remote.prototype.control = function(cmd, wait, refresh) {
   action.then(command).catch(this.error);
 }
 
+
 remote.prototype.sending = function() {
   const self = this;
 
@@ -445,6 +509,7 @@ remote.prototype.sending = function() {
 
   setTimeout(hide, 250);
 }
+
 
 remote.prototype.refresh = function(refresh) {
   console.log('refresh()', refresh);
@@ -480,6 +545,7 @@ remote.prototype.refresh.prototype.currentVolume = function() {
     this.clearTimeout();
   }, 500);
 }
+
 
 remote.prototype.connect = function(connected) {
   const self = this;
@@ -546,6 +612,7 @@ remote.prototype.connect = function(connected) {
   }
 }
 
+
 remote.prototype.chlist = function(close) {
   const self = this;
   const form = this.channels.querySelector('form');
@@ -556,7 +623,7 @@ remote.prototype.chlist = function(close) {
 
   var livetv;
 
-  if (parseInt(self.rs.dlna)) {
+  if (parseInt(self.rs.dlna) && self.storage.livetv) {
     livetv = JSON.parse(self.storage.livetv);
   }
 
@@ -629,7 +696,11 @@ remote.prototype.chlist = function(close) {
         optgroup = document.createElement('optgroup');
         optgroup.setAttribute('label', current_group.toUpperCase());
 
-        select.append(optgroup);
+        if (idx.indexOf('tv') != -1) {
+          select.insertBefore(optgroup, select.lastElementChild);
+        } else {
+          select.append(optgroup);
+        }
       }
 
       const option = document.createElement('option');
@@ -772,6 +843,7 @@ remote.prototype.chlist = function(close) {
     hide();
   }
 }
+
 
 remote.prototype.update = function(rehydrate) {
   const self = this;
@@ -1059,11 +1131,13 @@ remote.prototype.mirror = function(close) {
   }
 }
 
+
 remote.prototype.fav = function() {
   console.log('fav()');
 
   this.control('fav');
 }
+
 
 remote.prototype.tv_radio = function() {
   console.log('tv_radio()');
@@ -1071,28 +1145,12 @@ remote.prototype.tv_radio = function() {
   this.control('tv_radio', false, true);
 }
 
+
 remote.prototype.zap = function(checked) {
   console.log('zap()', checked);
 
   if (typeof checked === 'undefined') {
     this.infobar.querySelector('#zap input[type="checkbox"]').checked = this.storage.t_zap;
-    this.sfv['chlist'] = {'lamedb': 'ALL'};
-
-    try {
-      const chlist = JSON.parse(this.storage.chlist);
-
-      for (const idx in chlist) {
-        if (Object.keys(chlist[idx]['list']).length < 2) {
-          continue;
-        }
-
-        this.sfv['chlist'][idx] = chlist[idx]['name'];
-      }
-    } catch (err) {
-      console.error('zap()');
-
-      this.error(null, err);
-    }
 
     return;
   }
@@ -1103,6 +1161,7 @@ remote.prototype.zap = function(checked) {
     this.storage.setItem('t_zap', 1);
   }
 }
+
 
 remote.prototype.livetv = function(checked) {
   console.log('livetv()', checked);
@@ -1126,6 +1185,7 @@ remote.prototype.livetv = function(checked) {
     this.storage.setItem('t_livetv', 1);
   }
 }
+
 
 remote.prototype.settings = function(close) {
   const self = this;
@@ -1359,6 +1419,7 @@ remote.prototype.settings = function(close) {
   }
 }
 
+
 remote.prototype.session = function(callback) {
   const self = this;
   const session = this.request('command', '/web/session');
@@ -1388,7 +1449,7 @@ remote.prototype.session = function(callback) {
         } else if (expired) {
           self.update(true);
         } else {
-          self.status();
+          self.init();
         }
 
         if (! self.storage.currentFav) {
@@ -1426,6 +1487,8 @@ remote.prototype.session = function(callback) {
   session.then(check).catch(this.error);
 }
 
+
+
 const _remote = new remote();
 
 function _proxy(callee, nolock) {
@@ -1450,6 +1513,7 @@ function _proxy(callee, nolock) {
   }
 }
 
+
 function ir() {}
 ir.prototype.connect = _proxy('connect', true);
 ir.prototype.settings = _proxy('settings', true);
@@ -1464,6 +1528,7 @@ ir.prototype.return = _proxy('return');
 ir.prototype.prech = _proxy('prech');
 
 const _ir = window.ir = new ir();
+
 
 
 /**

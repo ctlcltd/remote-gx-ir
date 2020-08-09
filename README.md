@@ -36,32 +36,30 @@ https://www.python.org/downloads/
 
 ## Caveats
 
-Explanation of some misunderstanding keys from **settings.ini**:
+Some tips with **settings.ini**:
 
-*[DLNA][MODE]*
+###### *[DLNA][MODE]*
 * 0: SSDP
 * 1: fast (trick, utilizing WEBIF iptvs.json)
 * 2: fast (trick, and restoring previous WEBIF iptvs.json values)
 
-Some tips with **settings.ini**:
-
-*[MIRROR][CACHE_RETRY_DELAY]*
+###### *[MIRROR][CACHE_RETRY_DELAY]*
 Time interval before a new attempt of download source file through FTP.
 
-*[MIRROR][STREAM_START_DELAY]*
+###### *[MIRROR][STREAM_START_DELAY]*
 * Default:   3
 * Recommanded in ios:   6
 
-*[MIRROR][STREAM_BUFSIZE]*
-Put higher values for hevec streams.
+###### *[MIRROR][STREAM_BUFSIZE]*
+Put higher values for hvec streams.
 
-*[MIRROR][STREAM_LOOP]*
+###### *[MIRROR][STREAM_LOOP]*
 Loop from start when occuring errors in source stream.
 
 * -1   infinite loop
 * n   loop times (positive number)
 
-*[MIRROR][STREAM_SEEK_EOF]*
+###### *[MIRROR][STREAM_SEEK_EOF]*
 Set the position in source stream from end of file.
 
 * -n   seek from EOF (negative number)
