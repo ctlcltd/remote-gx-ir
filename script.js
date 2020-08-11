@@ -2,7 +2,7 @@
  * remote-gx-ir/script.js
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-09
+ * @version 2020-08-11
  * @license MIT License
  */
 
@@ -52,7 +52,7 @@ function remote() {
           'label': 'Default favourite',
           'type': 'select',
           'relationship': 'chlist',
-          'filter': 'lamedb|tv'
+          'filter': 'tv'
         },
         'disconnect_routine': {
           'label': 'Routine to disconnect'
@@ -86,7 +86,7 @@ function remote() {
     }
   };
   this.sfv = {
-    'chlist': {'lamedb': 'ALL'},
+    'chlist': {},
     'funcs': {
       '': 'None',
       'iptv': 'IPTV in memory',
@@ -211,10 +211,6 @@ remote.prototype.init = function() {
     const chlist = JSON.parse(this.storage.chlist);
 
     for (const idx in chlist) {
-      if (Object.keys(chlist[idx]['list']).length < 2) {
-        continue;
-      }
-
       this.sfv['chlist'][idx] = chlist[idx]['name'];
     }
   } catch (err) {
@@ -683,24 +679,24 @@ remote.prototype.chlist = function(close) {
     console.log('chlist()', 'render_form()');
 
     const fav = self.storage.currentFav;
-    var optgroup, last_group;
+    var optgroup;
+
+    optgroup = document.createElement('optgroup');
+    optgroup.setAttribute('label', 'TV');
+    select.append(optgroup);
+
+    optgroup = document.createElement('optgroup');
+    optgroup.setAttribute('label', 'RADIO');
+    select.append(optgroup);
 
     for (const idx in data) {
-      if (Object.keys(data[idx]['list']).length < 2) {
+      if (idx === 'lamedb') {
         continue;
       }
-
-      let current_group = idx === 'lamedb' ? idx : idx.split(':')[0];
-
-      if (current_group != last_group) {
-        optgroup = document.createElement('optgroup');
-        optgroup.setAttribute('label', current_group.toUpperCase());
-
-        if (idx.indexOf('tv') != -1) {
-          select.insertBefore(optgroup, select.lastElementChild);
-        } else {
-          select.append(optgroup);
-        }
+      if (idx.indexOf('tv') != -1) {
+        optgroup = select.firstElementChild;
+      } else {
+        optgroup = select.lastElementChild;
       }
 
       const option = document.createElement('option');
@@ -708,8 +704,6 @@ remote.prototype.chlist = function(close) {
       option.innerText = data[idx]['name'];
 
       optgroup.append(option);
-
-      last_group = current_group;
     }
 
     select.onchange = listChange;
@@ -757,8 +751,6 @@ remote.prototype.chlist = function(close) {
           tr.dataset.dnum = dnum;
           tr.dataset.res = livetv['channels'][dnum].res;
           tr.lastElementChild.innerText = livetv['channels'][dnum]['cas'] ? '$' : '';
-        } else {
-          tr.setAttribute('disabled', '');
         }
         if (self.storage.t_livetv && current.indexOf('tv') === -1) {
           tr.setAttribute('disabled', '');
@@ -774,6 +766,11 @@ remote.prototype.chlist = function(close) {
 
       i++;
     }
+
+    const tr = document.createElement('tr');
+    tr.append(document.createElement('td'));
+    tr.append(document.createElement('td'));
+    tbody.append(tr);
 
     table.rendered = true;
 
@@ -857,12 +854,60 @@ remote.prototype.update = function(rehydrate) {
     livetv();
   }
 
+  function index_chlist(data) {
+    console.log('update()', 'index_chlist()');
+
+    let names = [];
+    let group = {};
+    let list = {
+      'lamedb': data['lamedb'],
+      'tv:0': {'name': 'ALL', 'list': {}},
+      'radio:0': {'name': 'ALL', 'list': {}}
+    };
+
+    for (const bouquet in data) {
+      if (bouquet === 'lamedb') {
+        continue;
+      }
+      if (names.indexOf(data[bouquet]['name']) != -1 || Object.keys(data[bouquet]['list']).length < 2) {
+        continue;
+      } else {
+        list[bouquet] = data[bouquet];
+        for (const chid in data[bouquet]['list']) {
+          group[chid] = bouquet.split(':')[0];
+        }
+        names.push(data[bouquet]['name']);
+      }
+    }
+    let inum = {};
+    for (const chid in data['lamedb']['list']) {
+      if (group[chid] in inum === false) {
+        inum[group[chid]] = 0;
+      }
+      if (chid in group) {
+        inum[group[chid]] += 1;
+        list[group[chid] + ':0']['list'][chid] = data['lamedb']['list'][chid];
+        list[group[chid] + ':0']['list'][chid]['dnum'] = data['lamedb']['list'][chid]['num'];
+        list[group[chid] + ':0']['list'][chid]['num'] = inum[group[chid]];
+      }
+    }
+
+    try {
+      self.storage.setItem('chlist', JSON.stringify(list));
+    } catch (err) {
+      console.error('update()', 'index_chlist()');
+
+      self.error(xhr, err);
+    }
+  }
+
   function download_chlist(xhr) {
     console.log('update()', 'download_chlist()', xhr);
 
     try {
       if (xhr.response != 'ERROR') {
-        self.storage.setItem('chlist', xhr.response);
+        const data = JSON.parse(xhr.response);
+        index_chlist(data);
 
         self.status();
       } else {
@@ -1383,7 +1428,7 @@ remote.prototype.settings = function(close) {
 
     console.log('settings()', 'update()');
 
-    self.update(true);
+    self.update(false);
 
     loaded([this]);
   }

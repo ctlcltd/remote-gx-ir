@@ -2,7 +2,7 @@
 
 ## Remote IR control (staging)
 
-My remote controller web app for set-top-box based on csky-gx* Nationalchip boards and ?¿ comivision software.
+Remote controller web app for set-top-box based on csky-gx6622-dvbs2 NationalChip boards and the same codebase.
 
 |mirror|running|chlist|
 |-|-|-|
@@ -11,7 +11,7 @@ My remote controller web app for set-top-box based on csky-gx* Nationalchip boar
 
 Tested hard with an Edision Primo IP S2.
 
-May works with other STBs untested: Octagon SX88, Golden Interstar Alpha, U2C Denys, Ineos ZX4 and STB with similar software.
+May works with other STBs untested: Octagon SX88, Golden Interstar Alpha X, U2C Denys H265, Ineos ZX4, Arnix Fiber IPTV, Echosat CA 610HD, Hiremco Turbo IPTV, Wegoo VOGUE One, Teac HDR2250T, Arrox SPIDER H.265, and STB with similar software.
 
 > It requires *Python3*, web browser and optionally *ffmpeg* for local streaming. 
 
@@ -37,11 +37,6 @@ https://www.python.org/downloads/
 ## Caveats
 
 Some tips with **settings.ini**:
-
-###### *[DLNA][MODE]*
-* 0: SSDP
-* 1: fast (trick, utilizing WEBIF iptvs.json)
-* 2: fast (trick, and restoring previous WEBIF iptvs.json values)
 
 ###### *[MIRROR][CACHE_RETRY_DELAY]*
 Time interval before a new attempt of download source file through FTP.

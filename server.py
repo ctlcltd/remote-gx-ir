@@ -2,7 +2,7 @@
 #  remote-gx-ir/server.py
 #  
 #  @author Leonardo Laureti <https://loltgt.ga>
-#  @version 2020-08-08
+#  @version 2020-08-11
 #  @license MIT License
 #  
 
@@ -154,10 +154,7 @@ class FTPcom(FTP):
 
 class DLNAcom():
 	def __init__(self):
-		if int(config['DLNA']['MODE']):
-			srv = self.discover_fast()
-		else:
-			srv = self.discover_ssdp()
+		srv = self.ssdp_discover()
 
 		if srv:
 			self.ms = srv[0]
@@ -168,8 +165,8 @@ class DLNAcom():
 
 		print('DLNAcom', 'test', '__init__', {'ms': self.ms, 'mr': self.mr, 'udn': self.udn})
 
-	def discover_ssdp(self):
-		print('DLNAcom', 'discover_ssdp()')
+	def ssdp_discover(self):
+		print('DLNAcom', 'ssdp_discover()')
 
 		msg = \
 			'M-SEARCH * HTTP/1.1\r\n' \
@@ -202,38 +199,11 @@ class DLNAcom():
 				if ms and mr:
 					break
 		except socket.timeout:
-			print('DLNAcom', 'discover_ssdp()', 'socket.timeout')
+			print('DLNAcom', 'ssdp_discover()', 'socket.timeout')
 		else:
-			# print('DLNAcom', 'test', 'discover_ssdp()', (ms, mr))
+			# print('DLNAcom', 'test', 'ssdp_discover()', (ms, mr))
 
 			return (ms, mr)
-
-	def discover_fast(self):
-		print('DLNAcom', 'discover_fast()')
-
-		try:
-			cmd = command('iptvs.json')
-			data = json.loads(cmd['data'])
-		except Exception as err:
-			print('UPNPcom', 'fast_discover()', 'error', err)
-
-			return False
-
-		bakiptvname = data['iptvs'][0]['name']
-		bakiptvaddr = data['iptvs'][0]['server']
-
-		if bakiptvaddr.find('#'):
-			upnpports = bakiptvaddr[-9:].split('|')
-			ms = config['DLNA']['HOST'] + ':' + str(int(upnpports[0], 16))
-			mr = config['DLNA']['HOST'] + ':' + str(int(upnpports[1], 16))
-
-		if int(config['DLNA']['MODE']) == 2:
-			bakiptvname = urllib.parse.quote(bakiptvname)
-			bakiptvaddr = urllib.parse.quote(bakiptvaddr[:-10])
-
-			command('iptvsubmit?name=' + bakiptvname + '&protocol=m3u_playlist&address=' + bakiptvaddr + '&user_agent=&handle=7&default_portal=false')
-
-		return (ms, mr)
 
 	def get_devicedescription(self):
 		print('DLNAcom', 'get_devicedescription()')
@@ -412,7 +382,7 @@ def chlist(uri):
 	def parse_e2db_lamedb(lamedb):
 		print('chlist()', 'parse_e2db_lamedb()')
 
-		db = {'name': 'ALL', 'list': {}}
+		db = {'list': {}}
 
 		step = False
 		count = 0
@@ -824,7 +794,7 @@ def mirror(uri):
 		if 'mirror:threads' in globals():
 			print('mirror()', 'suppressthreads()')
 
-			#TODO FIX
+			#TODO FIX broken pipe
 			# if 'ftp' in globals()['mirror:threads']:
 			# 	globals()['mirror:threads']['ftp'].close()
 
@@ -941,6 +911,7 @@ class Handler(SimpleHTTPRequestHandler):
 			self.end_headers()
 			self.wfile.write(b'ERROR')
 
+	#TODO FIX broken pipe
 	def do_GET(self):
 		basename = os.path.basename(self.path)
 
