@@ -149,7 +149,6 @@ body {
 }
 .table table {
   width: 100%;
-  height: 100%;
 }
 .table.scrollable,
 .form.scrollable {
@@ -252,6 +251,12 @@ fieldset > div {
 form > p {
   margin: 0 0 2rem 0;
   font-size: 1.1rem;
+}
+form span.info {
+  display: block;
+  margin: .5rem 0 0 0;
+  font-size: .7rem;
+  opacity: .5;
 }
 legend {
   margin: 0 0 1.5rem 0;
@@ -925,7 +930,7 @@ button.close {
 
 .chlist .form { height: calc(100% - 2rem); }
 .chlist td { font-weight: bold; }
-.chlist th:first-child, .chlist td:first-child { width: 3rem; }
+.chlist th:first-child, .chlist td:first-child { width: 4.5rem; }
 .chlist th:last-child { text-indent: -999pt; }
 .chlist td:nth-child(2) { text-overflow: ellipsis; white-space: nowrap; overflow-x: hidden; }
 .chlist td:last-child { width: 1rem; font-size: .65rem; font-weight: normal; color: gold; opacity: .4; text-align: center; }

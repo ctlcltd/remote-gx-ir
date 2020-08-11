@@ -163,7 +163,7 @@ class DLNAcom():
 		else:
 			raise 'ERROR'
 
-		print('DLNAcom', 'test', '__init__', {'ms': self.ms, 'mr': self.mr, 'udn': self.udn})
+		print('DLNAcom', 'debug', '__init__', {'ms': self.ms, 'mr': self.mr, 'udn': self.udn})
 
 	def ssdp_discover(self):
 		print('DLNAcom', 'ssdp_discover()')
@@ -201,7 +201,7 @@ class DLNAcom():
 		except socket.timeout:
 			print('DLNAcom', 'ssdp_discover()', 'socket.timeout')
 		else:
-			# print('DLNAcom', 'test', 'ssdp_discover()', (ms, mr))
+			# print('DLNAcom', 'debug', 'ssdp_discover()', (ms, mr))
 
 			return (ms, mr)
 
@@ -227,7 +227,7 @@ class DLNAcom():
 
 			return None
 
-		# print('DLNAcom', 'test', 'get_devicedescription()', udn)
+		# print('DLNAcom', 'debug', 'get_devicedescription()', udn)
 
 		return udn
 
@@ -261,7 +261,7 @@ class DLNAcom():
 
 			return False
 
-		# print('DLNAcom', 'test', 'browse()', response)
+		# print('DLNAcom', 'debug', 'browse()', response)
 
 		results = {}
 
@@ -326,7 +326,7 @@ class DLNAcom():
 
 			return None
 
-		# print('DLNAcom', 'test', 'browse()', results)
+		# print('DLNAcom', 'debug', 'browse()', results)
 
 		return results
 
@@ -360,11 +360,13 @@ def command(uri):
 def chlist(uri):
 	print('chlist()', uri)
 
+	allowed = r'(^blacklist|lamedb|settings|whitelist$)|(^(cables|satellites|terrestrial)\.xml$)|(^bouquets\.(radio|tv)$)|(^[^\.]+\.[\d]+\.(radio|radio\.simple|tv|tv\.simple)$)'
+
 	def parse_e2db(e2db):
 		print('chlist()', 'parse_e2db()')
 
-		chlist = {}
-		chlist['lamedb'] = parse_e2db_lamedb(e2db['lamedb'])
+		channels = {}
+		channels['lamedb'] = parse_e2db_lamedb(e2db['lamedb'])
 
 		bouquets = filter(lambda path: path.startswith('bouquets.'), e2db)
 
@@ -375,14 +377,14 @@ def chlist(uri):
 				name = re.match(r'[^.]+.(\d+).(\w+)', filename)
 				idx = name[2] + ':' + name[1]
 
-				chlist[idx] = parse_e2db_userbouquet(chlist['lamedb']['list'], e2db[filename])
+				channels[idx] = parse_e2db_userbouquet(channels['lamedb'], e2db[filename])
 
-		return chlist
+		return channels
 
 	def parse_e2db_lamedb(lamedb):
 		print('chlist()', 'parse_e2db_lamedb()')
 
-		db = {'list': {}}
+		db = {}
 
 		step = False
 		count = 0
@@ -405,9 +407,9 @@ def chlist(uri):
 					chid = chid[0].lstrip('0') + ':' + chid[2].lstrip('0') + ':' + chid[3].lstrip('0') + ':' + chid[1].lstrip('0')
 					index += 1
 				elif count == 2:
-					db['list'][chid] = {}
-					db['list'][chid]['num'] = index
-					db['list'][chid]['name'] = to_UTF8(line)
+					db[chid] = {}
+					db[chid]['index'] = index
+					db[chid]['channel'] = to_UTF8(line)
 				elif count == 3:
 					count = 0
 					chid = ''
@@ -427,7 +429,7 @@ def chlist(uri):
 
 		return bs
 
-	def parse_e2db_userbouquet(chlist_lamedb, userbouquet):
+	def parse_e2db_userbouquet(channels_lamedb, userbouquet):
 		print('chlist()', 'parse_e2db_userbouquet()')
 
 		ub = {'name': '', 'list': {}}
@@ -449,12 +451,47 @@ def chlist(uri):
 				chid = line[9:-15].split(':')
 				chid = chid[3] + ':' + chid[4] + ':' + chid[5] + ':' + chid[6]
 
-				if chid in chlist_lamedb:
-					ub['list'][chid] = {}
-					ub['list'][chid]['num'] = index
-					ub['list'][chid]['name'] = chlist_lamedb[chid]['name']
+				if chid in channels_lamedb and chid not in ub['list']:
+					ub['list'][chid] = index
 
 		return ub
+
+	def get_channels_data(e2db):
+		print('chlist()', 'get_channels_data()')
+
+		chdata= {}
+		channels = parse_e2db(e2db)
+
+		chdata['channels'] = channels['lamedb']
+		chdata['tv:0'] = {'name': 0, 'list': {}}
+		chdata['radio:0'] = {'name': 0, 'list': {}}
+		groups = {'tv': {}, 'radio': {}}
+
+		for clist in channels:
+			if clist == 'lamedb':
+				continue
+
+			group = clist.split(':')[0]
+
+			for chid in channels[clist]['list']:
+				if chid not in groups[group]:
+					groups[group][chid] = channels[clist]['list'][chid]
+
+			chdata[clist] = channels[clist]
+
+		index = {'tv': 0, 'radio': 0}
+
+		for chid in channels['lamedb']:
+			if chid in groups['tv']:
+				index['tv'] += 1
+				chdata['tv:0']['list'][chid] = index['tv']
+			elif chid in groups['radio']:
+				index['radio'] += 1
+				chdata['radio:0']['list'][chid] = index['radio']
+
+		print('chlist()', 'debug', 'get_channels_data()', index)
+
+		return chdata
 
 	def get_ftpfile(ftp, filename):
 		print('chlist()', 'get_ftpfile()')
@@ -497,10 +534,8 @@ def chlist(uri):
 			path = os.path.basename(path)
 			filename = e2cache + '/' + path
 
-			#TODO
-			#-filter exclude
-			#-filter allowed
-
+			if not re.match(allowed, path):
+				continue
 			with open(filename, 'rb') as input:
 				e2db[path] = input.read().decode('utf-8').splitlines()
 
@@ -522,10 +557,8 @@ def chlist(uri):
 			path = os.path.basename(path)
 			filename = e2root + '/' + path
 
-			#TODO
-			#-filter allowed
-			#--filter exclude
-
+			if not re.match(allowed, path):
+				continue
 			if int(config['E2']['CACHE']):
 				e2db[path] = ftp.retrieve(filename, e2cache + '/' + path, read=True).decode('utf-8').splitlines()
 			else:
@@ -543,12 +576,12 @@ def chlist(uri):
 		else:
 			e2db = get_e2db_ftp()
 
-		chlist = parse_e2db(e2db)
-		chlist = to_JSON(chlist)
+		chdata= get_channels_data(e2db)
+		chdata= to_JSON(chdata)
 
-		store(chlist)
+		store(chdata)
 
-		return chlist
+		return chdata
 
 	def retrieve():
 		print('chlist()', 'retrieve()')
@@ -578,7 +611,7 @@ def chlist(uri):
 		else:
 			e2db = get_e2db_ftp()
 
-			data = parse_e2db(e2db)
+			data = get_channels_data(e2db)
 			data = to_JSON(data)
 
 			if int(config['E2']['CACHE']):

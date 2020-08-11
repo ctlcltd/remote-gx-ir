@@ -14,6 +14,7 @@ function remote() {
     'ftp': '0',
     'stream': '0',
     'fav': 'tv:1',
+    'filter_chlist': '1',
     'disconnect_routine': 'green,exit',
     'f1': '',
     'f2': '',
@@ -53,6 +54,11 @@ function remote() {
           'type': 'select',
           'relationship': 'chlist',
           'filter': 'tv'
+        },
+        'filter_chlist': {
+          'label': 'Filters channel lists',
+          'type': 'checkbox',
+          'info': 'Remove list with name not unique or channels less then 2.'
         },
         'disconnect_routine': {
           'label': 'Routine to disconnect'
@@ -287,10 +293,10 @@ remote.prototype.currentChannel = function() {
 
       self.storage.setItem('currentChannel', chid);
 
-      if (fav === 'lamedb' && chlist['lamedb']['list'][chid]) {
-        chnum.innerText = chlist['lamedb']['list'][chid].num;
-      } else if (chlist[fav]['list'][chid]) {
-        chnum.innerText = chlist[fav]['list'][chid].num;
+      if (fav in chlist && chid in chlist[fav]['list']) {
+        chnum.innerText = chlist[fav]['list'][chid];
+      } else if (chid in chlist['channels']) {
+        chnum.innerText = chlist['channels'][chid].index;
       } else {
         chnum.innerText = '?';
       }
@@ -301,8 +307,8 @@ remote.prototype.currentChannel = function() {
         const livetv = JSON.parse(self.storage.livetv);
         let dnum;
 
-        if (chlist['lamedb']['list'][chid]) {
-          dnum = chlist['lamedb']['list'][chid].num;
+        if (chlist['channels'][chid]) {
+          dnum = chlist['channels'][chid].index;
         }
         if (dnum && livetv['channels'][dnum]) {
           chcas.innerText = livetv['channels'][dnum]['cas'] ? '$' : '';
@@ -690,7 +696,7 @@ remote.prototype.chlist = function(close) {
     select.append(optgroup);
 
     for (const idx in data) {
-      if (idx === 'lamedb') {
+      if (idx === 'channels') {
         continue;
       }
       if (idx.indexOf('tv') != -1) {
@@ -733,8 +739,8 @@ remote.prototype.chlist = function(close) {
     for (const chid in data[current]['list']) {
       const tr = tr_tpl.cloneNode(true);
 
-      tr.firstElementChild.innerText = data[current]['list'][chid].num;
-      tr.firstElementChild.nextElementSibling.innerText = data[current]['list'][chid].name;
+      tr.firstElementChild.innerText = data[current]['list'][chid];
+      tr.firstElementChild.nextElementSibling.innerText = data['channels'][chid].channel;
       tr.lastElementChild.innerText = '';
 
       tr.dataset.fav = current;
@@ -744,8 +750,8 @@ remote.prototype.chlist = function(close) {
       if (livetv) {
         let dnum;
 
-        if (data['lamedb']['list'][chid]) {
-          dnum = data['lamedb']['list'][chid].num;
+        if (data['channels'][chid]) {
+          dnum = data['channels'][chid].index;
         }
         if (dnum && livetv['channels'][dnum]) {
           tr.dataset.dnum = dnum;
@@ -757,7 +763,7 @@ remote.prototype.chlist = function(close) {
         }
       }
 
-      tr.dataset.chnum = data[current]['list'][chid].num;
+      tr.dataset.chnum = data[current]['list'][chid];
       tr.dataset.idx = current;
       tr.onclick = channelChange;
       tr.removeAttribute('hidden');
@@ -794,7 +800,7 @@ remote.prototype.chlist = function(close) {
 
     if (! self.storage.s_livetv) {
       self.storage.setItem('s_livetv', true);
-      self.storage.setItem('currentFav', 'lamedb');
+      self.storage.setItem('currentFav', 'tv:0');
     }
 
     if (this.dataset.dnum && this.dataset.res) {
@@ -842,9 +848,10 @@ remote.prototype.chlist = function(close) {
 }
 
 
-remote.prototype.update = function(rehydrate) {
+remote.prototype.update = function(rehydrate, callback) {
   const self = this;
   const path_force = rehydrate ? '/' : '/update';
+  let x = 1, c = 1;
 
   console.log('update()', rehydrate);
 
@@ -854,51 +861,30 @@ remote.prototype.update = function(rehydrate) {
     livetv();
   }
 
-  function index_chlist(data) {
-    console.log('update()', 'index_chlist()');
+  function filter_chlist(data) {
+    console.log('update()', 'filter_chlist()');
 
     let names = [];
-    let group = {};
-    let list = {
-      'lamedb': data['lamedb'],
-      'tv:0': {'name': 'ALL', 'list': {}},
-      'radio:0': {'name': 'ALL', 'list': {}}
-    };
+    let chdata = {};
+
+    chdata['channels'] = data['channels'];
 
     for (const bouquet in data) {
-      if (bouquet === 'lamedb') {
+      if (bouquet === 'channels') {
         continue;
       }
-      if (names.indexOf(data[bouquet]['name']) != -1 || Object.keys(data[bouquet]['list']).length < 2) {
+      if (bouquet.indexOf(':0') === -1 && names.indexOf(data[bouquet]['name']) != -1 || Object.keys(data[bouquet]['list']).length < 2) {
         continue;
       } else {
-        list[bouquet] = data[bouquet];
-        for (const chid in data[bouquet]['list']) {
-          group[chid] = bouquet.split(':')[0];
-        }
+        chdata[bouquet] = data[bouquet];
         names.push(data[bouquet]['name']);
       }
     }
-    let inum = {};
-    for (const chid in data['lamedb']['list']) {
-      if (group[chid] in inum === false) {
-        inum[group[chid]] = 0;
-      }
-      if (chid in group) {
-        inum[group[chid]] += 1;
-        list[group[chid] + ':0']['list'][chid] = data['lamedb']['list'][chid];
-        list[group[chid] + ':0']['list'][chid]['dnum'] = data['lamedb']['list'][chid]['num'];
-        list[group[chid] + ':0']['list'][chid]['num'] = inum[group[chid]];
-      }
-    }
 
-    try {
-      self.storage.setItem('chlist', JSON.stringify(list));
-    } catch (err) {
-      console.error('update()', 'index_chlist()');
+    chdata['tv:0']['name'] = 'All';
+    chdata['radio:0']['name'] = 'All';
 
-      self.error(xhr, err);
-    }
+    return chdata;
   }
 
   function download_chlist(xhr) {
@@ -906,8 +892,17 @@ remote.prototype.update = function(rehydrate) {
 
     try {
       if (xhr.response != 'ERROR') {
-        const data = JSON.parse(xhr.response);
-        index_chlist(data);
+        var data;
+
+        if (parseInt(self.rs.filter_chlist)) {
+          data = JSON.parse(xhr.response);
+          data = filter_chlist(data);
+        } else {
+          data = xhr.response;
+        }
+        self.storage.setItem('chlist', JSON.stringify(data));
+
+        cb(c++);
 
         self.status();
       } else {
@@ -915,6 +910,8 @@ remote.prototype.update = function(rehydrate) {
       }
     } catch (err) {
       console.error('update()', 'download_chlist()');
+
+      cb();
 
       self.error(xhr, err);
     }
@@ -927,12 +924,16 @@ remote.prototype.update = function(rehydrate) {
       if (xhr.response != 'ERROR') {
         self.storage.setItem('livetv', xhr.response);
 
+        cb(c++);
+
         self.status();
       } else {
         throw 0;
       }
     } catch (err) {
       console.error('update()', 'download_livetv()');
+
+      cb();
 
       self.error(xhr, err);
     }
@@ -946,6 +947,13 @@ remote.prototype.update = function(rehydrate) {
   function livetv() {
     const livetv = self.request('dlna', '/livetv' + path_force);
     livetv.then(download_livetv).catch(self.error);
+    x++;
+  }
+
+  function cb(c) {
+    if ((x === c || ! c) && typeof callback === 'function') {
+      callback();
+    }
   }
 }
 
@@ -1099,8 +1107,8 @@ remote.prototype.mirror = function(close) {
       const chlist = JSON.parse(self.storage.chlist);
       const chid = self.storage.currentChannel;
 
-      if (chid && chlist['lamedb']['list'][chid]) {
-        chnum = chlist['lamedb']['list'][chid].num;
+      if (chid && chlist['channels'][chid]) {
+        chnum = chlist['channels'][chid].index;
       }
     } catch (err) {
       console.error('mirror()', 'start()');
@@ -1261,6 +1269,10 @@ remote.prototype.settings = function(close) {
 
     self.setup.classList.add('out');
 
+    if (form.locked) {
+      return window.alert('please wait\u2026');
+    }
+
     setTimeout(function() {
       self.setup.setAttribute('hidden', '');
       self.setup.classList.remove('out');
@@ -1340,9 +1352,7 @@ remote.prototype.settings = function(close) {
           const input = document.createElement('input');
           input.name = f;
           input.setAttribute('type', 'checkbox');
-          if (row) {
-            input.checked = true;
-          }
+          input.checked = row === '1' ? true : false;
           div.append(input);
         } else if (field['type'] === 'number') {
           const input = document.createElement('input');
@@ -1359,6 +1369,12 @@ remote.prototype.settings = function(close) {
           input.value = row ? row.toString() : '';
           div.append(input);
         }
+        if ('info' in field) {
+          const span = document.createElement('span');
+          span.className = 'info';
+          span.innerText = field['info'];
+          div.append(span);
+        }
 
         fieldset.append(div);
 
@@ -1370,6 +1386,7 @@ remote.prototype.settings = function(close) {
     form.onsubmit = save;
     form.onreset = reset;
 
+    form.locked = false;
     form.rendered = true;
   }
 
@@ -1378,14 +1395,19 @@ remote.prototype.settings = function(close) {
 
     console.log('settings()', 'save()');
 
+    if (form.locked) {
+      return window.alert('please wait\u2026');
+    }
+
     var data = {};
+    var prev_data = Object.assign({}, self.rs);
 
     loading(this.elements);
 
     for (const el of this.elements) {
       if (el.tagName != 'FIELDSET' && el.tagName != 'BUTTON' && ! (el.type && el.type === 'button')) {
         if (el.type === 'checkbox') {
-          data[el.name] = el.value === 'on' ? '1' : '0';
+          data[el.name] = el.checked ? '1' : '0';
         } else {
           data[el.name] = el.value;
         }
@@ -1399,15 +1421,23 @@ remote.prototype.settings = function(close) {
       error(null, 'Error handling data.');
     }
 
-    loaded(this.elements);
+    if (parseInt(prev_data.filter_chlist) === parseInt(self.rs.filter_chlist)) {
+      loaded(this.elements);
+    } else {
+      self.update(false, loaded.bind(globalThis, this.elements));
+    }
   }
 
   function reset(event) {
     event.preventDefault();
 
-    loading(this.elements);
-
     console.log('settings()', 'reset()');
+
+    if (form.locked) {
+      return window.alert('please wait\u2026');
+    }
+
+    loading(this.elements);
 
     self.stora.removeItem('settings');
     self.storage.setItem('settings', JSON.stringify(self.defaults));
@@ -1424,13 +1454,15 @@ remote.prototype.settings = function(close) {
   function update(event) {
     event.preventDefault();
 
+    if (form.locked) {
+      return window.alert('please wait\u2026');
+    }
+
     loading([this]);
 
     console.log('settings()', 'update()');
 
-    self.update(false);
-
-    loaded([this]);
+    self.update(false, loaded.bind(globalThis, [this]));
   }
 
   function loading(elements) {
@@ -1439,6 +1471,7 @@ remote.prototype.settings = function(close) {
         el.setAttribute('data-loading', '');
       }
     }
+    form.locked = true;
   }
 
   function loaded(elements) {
@@ -1448,6 +1481,7 @@ remote.prototype.settings = function(close) {
           el.removeAttribute('data-loading');
         }
       }
+      form.locked = false;
 
       this.clearTimeout();
     }, 300);
@@ -1505,7 +1539,7 @@ remote.prototype.session = function(callback) {
           self.tick = setInterval(self.session.bind(self), parseInt(self.rs.refresh));
         }
 
-        if (callback && typeof callback === 'function') {
+        if (typeof callback === 'function') {
           callback();
         }
       } else {
@@ -1523,7 +1557,7 @@ remote.prototype.session = function(callback) {
 
       self.error(xhr, err);
 
-      if (callback && typeof callback === 'function') {
+      if (typeof callback === 'function') {
         callback();
       }
     }
