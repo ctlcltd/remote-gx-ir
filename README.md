@@ -2,7 +2,7 @@
 
 ## Remote IR control (staging)
 
-Remote controller web app for set-top-box based on csky-gx6622-dvbs2 NationalChip boards and the same codebase.
+Remote controller web app for set-top-box based on csky gx6602 dvbs2 NationalChip boards and the same codebase.
 
 |mirror|running|chlist|
 |-|-|-|
