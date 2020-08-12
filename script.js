@@ -2,7 +2,7 @@
  * remote-gx-ir/script.js
  * 
  * @author Leonardo Laureti <https://loltgt.ga>
- * @version 2020-08-11
+ * @version 2020-08-12
  * @license MIT License
  */
 
@@ -869,7 +869,7 @@ remote.prototype.update = function(rehydrate, callback) {
 
     chdata['channels'] = data['channels'];
 
-    for (const bouquet in data) {
+    for (const bouquet in data) {
       if (bouquet === 'channels') {
         continue;
       }
@@ -878,6 +878,7 @@ remote.prototype.update = function(rehydrate, callback) {
       } else {
         chdata[bouquet] = data[bouquet];
         names.push(data[bouquet]['name']);
+        self.sfv['chlist'][bouquet] = data[bouquet]['name'];
       }
     }
 

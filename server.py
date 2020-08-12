@@ -2,7 +2,7 @@
 #  remote-gx-ir/server.py
 #  
 #  @author Leonardo Laureti <https://loltgt.ga>
-#  @version 2020-08-11
+#  @version 2020-08-12
 #  @license MIT License
 #  
 
@@ -19,7 +19,7 @@ from xml.etree import ElementTree
 import socket
 import time
 import threading
-import sys
+import sys, traceback
 import queue
 import subprocess
 
@@ -161,7 +161,7 @@ class DLNAcom():
 			self.mr = srv[1]
 			self.udn = self.get_devicedescription()
 		else:
-			raise 'ERROR'
+			raise Exception('ERROR')
 
 		print('DLNAcom', 'debug', '__init__', {'ms': self.ms, 'mr': self.mr, 'udn': self.udn})
 
@@ -208,7 +208,7 @@ class DLNAcom():
 	def get_devicedescription(self):
 		print('DLNAcom', 'get_devicedescription()')
 
-		url = 'http://' + self.ms + '/DeviceDescription.xml';
+		url = 'http://' + self.ms + '/DeviceDescription.xml'
 
 		try:
 			request = urllib.request.urlopen(url, timeout=int(config['DLNA']['REQUEST_TIMEOUT']))
@@ -222,8 +222,8 @@ class DLNAcom():
 			xmlRoot = ElementTree.fromstring(response)
 			udn = xmlRoot.find('./{urn:schemas-upnp-org:device-1-0}device/{urn:schemas-upnp-org:device-1-0}UDN').text
 			udn = udn[5:]
-		except Exception as err:
-			print('DLNAcom', 'get_devicedescription()', 'error', err)
+		except:
+			error('DLNAcom', 'get_devicedescription()')
 
 			return None
 
@@ -234,7 +234,7 @@ class DLNAcom():
 	def browse(self, level=0, objectid=0, browseflag='BrowseDirectChildren', requestedcount=9999):
 		print('DLNAcom', 'browse()')
 
-		url = 'http://' + self.ms + '/ContentDirectory/' + self.udn + '/control.xml';
+		url = 'http://' + self.ms + '/ContentDirectory/' + self.udn + '/control.xml'
 		payload = '<?xml version="1.0" encoding="utf-8" standalone="yes"?>' \
 				'<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">' \
 				'<s:Body>' \
@@ -257,7 +257,7 @@ class DLNAcom():
 			with urllib.request.urlopen(req) as request:
 				response = request.read()
 		except (urllib.error.HTTPError, urllib.error.URLError) as err:
-			print('DLNAcom', 'browse()', 'urllib.error', err)
+			error('DLNAcom', 'browse()', 'urllib.error', err)
 
 			return False
 
@@ -321,8 +321,8 @@ class DLNAcom():
 						results[index] = result
 
 					index += 1
-		except Exception as err:
-			print('DLNAcom', 'browse()', 'error', err)
+		except:
+			error('DLNAcom', 'browse()')
 
 			return None
 
@@ -339,8 +339,20 @@ def to_JSON(obj):
 	return json.dumps(obj, separators=(',', ':')).encode('utf-8')
 
 
+def error(*args):
+	if isinstance(args[-1], BaseException):
+		errmsg = str(args[-1])
+		errtype = type(errmsg).__name__
+	else:
+		errmsg = str(sys.exc_info()[1])
+		errtype = sys.exc_info()[0].__name__
 
-def command(uri):
+	print(*args[:1], 'error:', errtype, '"' + errmsg + '"')
+	traceback.print_tb(sys.exc_info()[2])
+	print()
+
+
+def command(uri, qs):
 	print('command()', uri)
 
 	url = 'http://' + config['WEBIF']['HOST'] + '/' + uri
@@ -350,14 +362,14 @@ def command(uri):
 		mimetype = request.info()['Content-Type']
 		response = request.read()
 	except (urllib.error.HTTPError, urllib.error.URLError) as err:
-		print('command()', 'error:', 'urllib.error', err)
+		error('command()', 'urllib.error', err)
 
 		return False
 
 	return {'data': response, 'headers': {'Content-Type': mimetype}}
 
 
-def chlist(uri):
+def chlist(uri, qs):
 	print('chlist()', uri)
 
 	allowed = r'(^blacklist|lamedb|settings|whitelist$)|(^(cables|satellites|terrestrial)\.xml$)|(^bouquets\.(radio|tv)$)|(^[^\.]+\.[\d]+\.(radio|radio\.simple|tv|tv\.simple)$)'
@@ -434,7 +446,7 @@ def chlist(uri):
 
 		ub = {'name': '', 'list': {}}
 		step = False
-		index = 0;
+		index = 0
 
 		for line in userbouquet:
 			if step and line.startswith('#SORT'):
@@ -501,9 +513,9 @@ def chlist(uri):
 			ftp.retrbinary('RETR ' + filename, reader.write)
 			return reader.getvalue()
 		except Exception as err:
-			print('chlist()', 'get_ftpfile()', 'error:', err)
+			error('chlist()', 'get_ftpfile()', 'FTPcom Exception', err)
 		except:
-			print('chlist()', 'get_ftpfile()', 'error')
+			error('chlist()', 'get_ftpfile()')
 
 	def get_e2db_ftp():
 		print('chlist()', 'get_e2db_ftp()')
@@ -514,9 +526,9 @@ def chlist(uri):
 			ftp = FTPcom().open()
 			e2db = update(ftp)
 		except Exception as err:
-			print('chlist()', 'get_e2db_ftp()', 'error:', err)
+			error('chlist()', 'get_e2db_ftp()', 'FTPcom Exception', err)
 		except:
-			print('chlist()', 'get_e2db_ftp()', 'error')
+			error('chlist()', 'get_e2db_ftp()')
 		#TODO FIX
 		# else:
 		# 	ftp.close()
@@ -616,15 +628,15 @@ def chlist(uri):
 
 			if int(config['E2']['CACHE']):
 				store(data)
-	except Exception as err:
-		print('chlist()', 'error:', err)
+	except:
+		error('chlist()')
 
 		return False
 
 	return {'data': data, 'headers': {'Content-Type': 'application/json'}}
 
 
-def dlna(uri):
+def dlna(uri, qs):
 	print('dlna()', uri)
 
 	if not int(config['DLNA']['ENABLE']):
@@ -677,7 +689,7 @@ def dlna(uri):
 			output.write(cache)
 
 	if not uri.startswith('livetv'):
-		print('dlna()', 'error', 'not implemented')
+		error('dlna()', 'not implemented')
 
 		return None
 
@@ -718,13 +730,15 @@ def dlna(uri):
 					data = update(data)
 			else:
 				data = update(data)
-	except Exception as err:
-		print('dlna()', 'error', err)
+	except:
+		error('dlna()')
+
+		return False
 
 	return {'data': data, 'headers': {'Content-Type': 'application/json'}}
 
 
-def mirror(uri):
+def mirror(uri, qs):
 	print('mirror()', uri)
 
 	if not int(config['MIRROR']['ENABLE']):
@@ -765,7 +779,7 @@ def mirror(uri):
 		time.sleep(int(config['MIRROR']['STREAM_START_DELAY']))
 
 		if not subprocess.getstatusoutput('ffmpeg')[0]:
-			print('mirror()', 'stream()', 'error: missing "ffmpeg"')
+			error('mirror()', 'stream()', 'error: missing "ffmpeg"')
 
 			return
 
@@ -813,8 +827,8 @@ def mirror(uri):
 			urllib.request.urlopen(control[0]['res'], timeout=int(config['DLNA']['REQUEST_TIMEOUT']))
 		except (urllib.error.HTTPError, urllib.error.URLError):
 			pass
-		except Exception as err:
-			print('mirror()', 'dlna_trick()', 'error', err)
+		except:
+			error('mirror()', 'dlna_trick()')
 
 	def close():
 		print('mirror()', 'close()')
@@ -910,25 +924,108 @@ def mirror(uri):
 			thread_stream.start()
 
 			globals()['mirror:threads']['stream'] = thread_stream
-	except Exception as err:
-		print('mirror()', 'error:', err)
+	except:
+		error('mirror()')
 
 		return False
 
 	return {'data': to_JSON(data), 'headers': {'Content-Type': 'application/json'}}
 
 
+def livetv(uri, qs):
+	print('livetv()', uri)
+
+	def xmltv_m3u(qs):
+		print('livetv()', 'xmltv_m3u()', qs)
+
+		filter_group = None
+
+		if 'group' in qs:
+			filter_group = qs['group']
+
+		m3u = ''
+
+		try:
+			chdata = chlist('.', '')
+			livetv = dlna('livetv', '')
+
+			if not chdata or not livetv:
+				return b''
+
+			data_ch = json.loads(chdata['data'])
+			data_tv = json.loads(livetv['data'])
+
+			m3u = '#EXTM3U\n'
+
+			for group in data_ch:
+				if group == 'channels' or group.startswith('radio:'):
+					continue
+				gname = data_ch[group]['name']
+				if not gname:
+					gname = 'All'
+				if filter_group and not filter_group == gname:
+					continue
+
+				for chid in data_ch[group]['list']:
+					dnum = str(data_ch['channels'][chid]['index'])
+					chnum = str(data_ch[group]['list'][chid])
+					chname = data_tv['channels'][dnum]['name']
+					res = data_tv['channels'][dnum]['res']
+
+					m3u += '#EXTINF:-1 tvg-id="' + chid + '" tvg-name="' + chname + '" tvg-chno="' + chnum + '" group-title="' + gname + '",' + chname + '\n'
+					m3u += res + '\n'
+
+			m3u += '\n'
+		except:
+			error('livetv()', 'xmltv_m3u()')
+
+			pass
+
+		return m3u.encode('utf-8')
+
+	data = b''
+	headers = {}
+
+	try:
+		if uri.endswith('xmltv.m3u'):
+			data = xmltv_m3u(qs)
+			headers = {'Content-Type': 'audio/x-mpegurl'}
+	except:
+		error('livetv()')
+
+		pass
+
+	return {'data': data, 'headers': headers}
+
+
 class Handler(SimpleHTTPRequestHandler):
+	def qs(self):
+		querystring = None
+		parts = urllib.parse.urlparse(self.path).query
+
+		if parts:
+			querystring = {}
+			parts = parts.split('&')
+
+			for part in parts:
+				print(part)
+				qsp = part.split('=')
+				querystring[qsp[0]] = qsp[1]
+
+		return querystring
+
 	def service(self):
-		fn = self.path.split('/')[2];
-		uri = os.path.relpath(self.path, '/service/' + fn)
+		path = urllib.parse.urlparse(self.path).path
+		fn = path.split('/')[2]
+		uri = os.path.relpath(path, '/service/' + fn)
+		qs = self.qs()
 
 		print('Handler', 'service()', fn)
 
 		response = False
 
-		if fn in ['command', 'chlist', 'dlna', 'mirror']:
-			response = globals()[fn](uri)
+		if fn in ['command', 'chlist', 'dlna', 'mirror', 'livetv']:
+			response = globals()[fn](uri, qs)
 
 		if response:
 			self.send_response(200)
