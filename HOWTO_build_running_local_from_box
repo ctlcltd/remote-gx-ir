@@ -1,0 +1,110 @@
+
+
+ubuntu i386 14.04.6 LTS
+
+https://releases.ubuntu.com/trusty/
+
+
+apt-get install build-essential
+
+
+
+repo:
+add-apt-repository ppa:nationalchip-repo/gxtools
+
+wget https://launchpad.net/~nationalchip-repo/+archive/ubuntu/gxtools/+sourcefiles/csky-linux-tools-uclibc-2.8.01/1.0.0.0/csky-linux-tools-uclibc-2.8.01_1.0.0.0.tar.xz
+
+
+sdk:
+
+https://github.com/McMCCRU/gx66xx
+
+
+
+repo:
+export PATH=/opt/gxtools/csky-linux-tools-uclibc-20170724/bin:$PATH
+
+sdk:
+export PATH=/opt/goxceed/csky-linux/bin:$PATH
+
+
+
+OPENSSL
+=======
+
+mkdir openssl
+wget https://www.openssl.org/source/openssl-1.1.1g.tar.gz
+tar zxvf openssl-1.1.1g.tar.gz
+cd openssl-1.1.1g
+CC=gcc ./Configure uClinux-dist --prefix=$HOME/openssl --openssldir=$HOME/openssl no-ssl2 no-ssl3 no-shared no-threads --cross-compile-prefix=csky-linux-
+make
+make install
+
+
+PYTHON3
+=======
+
+apt-get install libffi6 libffi6-dev
+
+mkdir python
+cd python
+mkdir build
+wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz
+tar zxvf Python-3.8.5.tgz
+
+export PATH=$HOME/openssl/bin:$PATH
+export LD_LIBRARY_PATH=$HOME/openssl/lib
+export LDFLAGS="-L$HOME/openssl/lib -Wl,-rpath,$HOME/openssl/lib"
+
+cd build_x86
+../Python-3.8.5/configure --disable-shared --with-openssl=$HOME/openssl --prefix=$HOME/python/build_x86 CFLAGS="-I$HOME/openssl/include" LDFLAGS="-L$HOME/openssl/lib"
+
+export LD_LIBRARY_PATH=$HOME/python/build_x86/lib:$LD_LIBRARY_PATH
+
+CC=csky-linux-gcc CXX=csky-linux-g++ AR=csky-linux-ar RANLIB=csky-linux-ranlib ac_cv_file__dev_ptmx=no ac_cv_file__dev_ptc=no ../Python-3.8.5/configure --host=csky-linux --build=i686-linux-gnu --disable-ipv6 --disable-shared --prefix=$HOME/python/runtime --with-openssl=$HOME/openssl CFLAGS="-I$HOME/openssl/include" LDFLAGS="-L$HOME/openssl/lib"
+
+CC=csky-linux-gcc CXX=csky-linux-g++ AR=csky-linux-ar RANLIB=csky-linux-ranlib ac_cv_file__dev_ptmx=no ac_cv_file__dev_ptc=no ../Python-3.8.5/configure --host=csky-linux --build=i686-linux-gnu --disable-ipv6 --disable-shared --prefix=$HOME/python/runtime --with-ssl-default-suites=python
+
+make
+make install
+
+cd ../build/bin
+csky-linux-strip python3.8
+cd ../lib
+csky-linux-strip libpython3.8.a
+
+
+
+libcrypt.so.0
+-------------
+
+sdk:
+/opt/goxceed/csky-linux/csky-linux/lib/libcrypt-0.9.33.2.so
+
+
+
+python.sh
+---------
+
+#!/bin/sh
+LD_LIBRARY_PATH=/home/gx/python/lib python3.8 $@
+
+:q
+
+
+
+
+/home/gx/python
+/home/gx/python/python -> python.sh
+/home/gx/python/python3 -> python
+/home/gx/python/python.sh
+/home/gx/python/python3.8
+/home/gx/python/lib
+/home/gx/python/lib/libcrypt.so -> libcrypt-0.9.33.2.so
+/home/gx/python/lib/libcrypt.so.0 -> libcrypt-0.9.33.2.so
+/home/gx/python/lib/libcrypt-0.9.33.2.so
+/home/gx/python/lib/libpython3.8.a
+
+/home/gx/python/lib/python3.8/*
+
+
