@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2d2f2d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" id="appname" content="REMOTE-GX-IR DEMO">
+<meta http-equiv="refresh" content="2000;url=index.html">
+<title>REMOTE-GX-IR DEMO</title>
+<style>body { background: #2d2f2d }</style>
+</head>
+<body>
+<script>
+window.sessionStorage.setItem('demo', 1);
+window.sessionStorage.removeItem('chlist');
+window.sessionStorage.removeItem('connected');
+window.sessionStorage.removeItem('currentFav');
+window.sessionStorage.removeItem('session');
+window.sessionStorage.removeItem('settings');
+window.sessionStorage.removeItem('test');
+window.setTimeout(function() { window.location = 'index.html'; }, 2e3);
+</script>
+</body>
+</html>

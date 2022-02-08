@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 #  remote-gx-ir/server.py
 #  
-#  @author Leonardo Laureti <https://loltgt.ga>
-#  @version 2020-08-12
+#  @author Leonardo Laureti
+#  @version 2022-02-08
 #  @license MIT License
 #  
 
@@ -349,7 +349,6 @@ def error(*args):
 
 	print(*args[:1], 'error:', errtype, '"' + errmsg + '"')
 	traceback.print_tb(sys.exc_info()[2])
-	print()
 
 
 def command(uri, qs):
@@ -372,7 +371,8 @@ def command(uri, qs):
 def chlist(uri, qs):
 	print('chlist()', uri)
 
-	allowed = r'(^blacklist|lamedb|settings|whitelist$)|(^(cables|satellites|terrestrial)\.xml$)|(^bouquets\.(radio|tv)$)|(^[^\.]+\.[\d]+\.(radio|radio\.simple|tv|tv\.simple)$)'
+	#TODO filter
+	allowed = r'(^blacklist|lamedb|settings|whitelist$)|(^(cables|satellites|terrestrial)\.xml$)|(^bouquets\.(radio|tv)$)|(^[^\.]+\.[\w\d]+\.(radio|radio\.simple|tv|tv\.simple)$)'
 
 	def parse_e2db(e2db):
 		print('chlist()', 'parse_e2db()')
@@ -386,7 +386,7 @@ def chlist(uri, qs):
 			db = parse_e2db_bouquet(e2db[filename])
 
 			for filename in db['userbouquets']:
-				name = re.match(r'[^.]+.(\d+).(\w+)', filename)
+				name = re.match(r'[^.]+.([\w\d]+).(\w+)', filename)
 				idx = name[2] + ':' + name[1]
 
 				channels[idx] = parse_e2db_userbouquet(channels['lamedb'], e2db[filename])
@@ -415,7 +415,7 @@ def chlist(uri, qs):
 				count += 1
 
 				if count == 1:
-					chid = line[:-5].upper().split(':')
+					chid = line.upper().split(':')
 					chid = chid[0].lstrip('0') + ':' + chid[2].lstrip('0') + ':' + chid[3].lstrip('0') + ':' + chid[1].lstrip('0')
 					index += 1
 				elif count == 2:
@@ -456,14 +456,18 @@ def chlist(uri, qs):
 				ub['name'] = to_UTF8(line[6:].split('  ')[0])
 				step = True
 				continue
+			elif step and line.startswith('#DESCRIPTION'):
+				continue
 
 			if step:
 				index += 1
 
-				chid = line[9:-15].split(':')
-				chid = chid[3] + ':' + chid[4] + ':' + chid[5] + ':' + chid[6]
+				chid = line[9:-7].split(':')
 
-				if chid in channels_lamedb and chid not in ub['list']:
+				if len(chid) > 6:
+					chid = chid[3] + ':' + chid[4] + ':' + chid[5] + ':' + chid[6]
+
+				if chid and chid in channels_lamedb and chid not in ub['list']:
 					ub['list'][chid] = index
 
 		return ub

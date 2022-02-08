@@ -1,6 +1,6 @@
 # remote-gx-ir
 
-## Remote IR control (staging)
+## Remote IR control
 
 Remote controller web app for set-top-box based on csky gx6602 dvbs2 NationalChip boards and the same codebase.
 
@@ -9,13 +9,32 @@ Remote controller web app for set-top-box based on csky gx6602 dvbs2 NationalChi
 |[![screen mirroring](../res/screen-mirroring.jpg)](https://raw.githubusercontent.com/ctlcltd/remote-gx-ir/res/screen-mirroring.jpg)|[![running from device](../res/running-from-device.jpg)](https://raw.githubusercontent.com/ctlcltd/remote-gx-ir/res/running-from-device.jpg)|[![channel list](../res/channel-list.jpg)](https://raw.githubusercontent.com/ctlcltd/remote-gx-ir/res/channel-list.jpg)|
 
 
-Tested hard with an Edision Primo IP S2.
+Tested hard with Edision Primo IP S2.
 
-May works with other STBs untested: Octagon SX88, Golden Interstar Alpha X, U2C Denys H265, Ineos ZX4, Arnix Fiber IPTV, Echosat CA 610HD, Hiremco Turbo IPTV, Wegoo VOGUE One, Teac HDR2250T, Arrox SPIDER H.265, and STB with similar software.
+May works with STBs and web interface *e2webif* from Enigma2.
 
-> It requires *Python3*, web browser and optionally *ffmpeg* for local streaming. 
+STBs with similar web interface could be: Octagon SX88, Golden Interstar Alpha X, U2C Denys H265, Ineos ZX4, Arnix Fiber IPTV, Echosat CA 610HD, Hiremco Turbo IPTV, Wegoo VOGUE One, Teac HDR2250T, Arrox SPIDER H.265.
+
+> It requires *Python3*, a web browser and optionally *ffmpeg* for local streaming.
 
  
+### Features
+
+- Remote controller (webapp)
+- Acts as web server and proxy
+- Shows current Channel info and STB indicators (channel number / name, signal, volume)
+- Shows Channel list, Bouquets
+- Live TV
+- Screen mirroring
+- Zap routines (ex. channel: 123 -> 1 + 2 + 3, pre-channel: prech -> prech + ok)
+- Local streaming [ffmpeg]: MPEG-TS (RTP) copy stream
+- Local streaming [DLNA]: MPEG-TS
+- FTP download and upload
+- DLNA UPnP discover and browse
+- enigma2 lamedb 4 / user bouquets parsing
+- Local caching
+- Demo mode ([try it!](https://ctlcltd.github.io/remote-gx-it/demo.html))
+
 
 ### Usage
 
@@ -60,14 +79,7 @@ Set the position in source stream from end of file.
 * -n   seek from EOF (negative number)
 * 0   disable seek
 
-
-### Roadmap
-
-- DLNA UPnP
-- VLC support
-
  
-
 ## Contributing
 
 You can open [issues](https://github.com/ctlcltd/remote-gx-ir/issues) to report bug, request features or send a [Pull Request](https://github.com/ctlcltd/remote-gx-ir/pulls).
