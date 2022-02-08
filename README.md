@@ -33,7 +33,7 @@ STBs with similar web interface could be: Octagon SX88, Golden Interstar Alpha X
 - DLNA UPnP discover and browse
 - enigma2 lamedb 4 / user bouquets parsing
 - Local caching
-- 🆕 Demo mode ([try it!](https://ctlcltd.github.io/remote-gx-it/demo.html))
+- 🆕 Demo mode ([try it!](https://ctlcltd.github.io/remote-gx-ir/demo.html))
 
 
 ### Usage
