@@ -1,0 +1,67 @@
+/**
+ * remote-gx-ir/src/css/display.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+.display {
+  position: relative;
+  height: 4.2rem;
+  margin: 0;
+  padding: 0 1rem;
+  background: #2c2c2c;
+  text-align: left;
+  vertical-align: middle;
+  border-radius: .1rem;
+  overflow: hidden;
+}
+
+.channel {
+  display: inline-block;
+  width: calc(100% - 3rem);
+  padding: .6rem 0;
+}
+
+.chnum,
+.chname {
+  display: inline-block;
+}
+.chnum {
+  width: 2.6rem;
+  font-size: 1.1rem;
+  margin-right: .4rem;
+  color: #ccc;
+}
+.chname {
+  max-width: calc(100% - 4rem);
+  height: 1.05rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow-x: hidden;
+}
+.chdigits {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: .2rem 1rem;
+  font-size: 1.2rem;
+  line-height: 3.8rem;
+  letter-spacing: .6rem;
+  background: #2c2c2c;
+  z-index: 2;
+}
+.chcas {
+  position: absolute;
+  right: 4.5rem;
+  bottom: .4rem;
+  width: .4rem;
+  display: inline-block;
+  font-size: .6rem;
+  color: gold;
+  opacity: .4;
+}
+
+

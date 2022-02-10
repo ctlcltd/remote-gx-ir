@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<link rel="stylesheet" href="css/index.css">
+<title>REMOTE-GX-IR</title>
+</head>
+<body>
+<div id="cnt">
+<main id="chlist" class="chlist view overlay" hidden>
+  <div class="overlay-top">
+    <button class="close" onclick="ir.chlist(arguments[0], true)" title="CLOSE"><span class="close-icon icon"></span></button>
+  </div>
+  <div class="form flex fill">
+    <form>
+      <fieldset>
+        <div class="table scrollable clickable">
+          <table>
+            <thead>
+              <tr>
+                <th>CHNUM</th>
+                <th>CHNAME</th>
+                <th>CHCAS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr hidden>
+                <td class="dchnum">?</td>
+                <td class="dchname">CHANNEL</td>
+                <td class="dchcas"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </fieldset>
+      <fieldset>
+        <select id="fav" title="FAV"></select>
+      </fieldset>
+    </form>
+  </div>
+</main>
+</div>
+</body>
+</html>

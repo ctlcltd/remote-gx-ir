@@ -1,0 +1,44 @@
+/**
+ * remote-gx-ir/src/css/overlay.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+.overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  transition: 50ms opacity linear;
+  opacity: 1;
+  z-index: 1000;
+}
+.overlay.view {
+  padding: 1rem;
+}
+.overlay-top {
+  position: absolute;
+  right: 1.5rem;
+  left: 1.5rem;
+  clear: both;
+  min-height: 3rem;
+  z-index: 9999;
+}
+.overlay-top .close {
+  float: right;
+  margin: -1.5rem;
+}
+.overlay {
+  opacity: 1;
+}
+.overlay[hidden] {
+  opacity: 0;
+}
+.overlay.in {
+  opacity: 0;
+}

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<link rel="stylesheet" href="src/css/index.css">
+<title>REMOTE-GX-IR</title>
+</head>
+<body>
+<div id="cnt">
+<main id="settings" class="settings view overlay" hidden>
+  <div class="overlay-top">
+    <button class="close" onclick="ir.settings(arguments[0], true)" title="CLOSE"><span class="close-icon icon"></span></button>
+  </div>
+  <div class="form scrollable flex">
+    <form>
+      <p class="form-label">Settings</p>
+      <fieldset>
+        <div>
+          <label>Update channels data</label>
+          <button class="update"><span class="update-icon icon"></span> <span class="update-label">UPDATE</span></button>
+        </div>
+      </fieldset>
+      <fieldset>
+        <button type="submit">SAVE</button>
+        <button type="reset">RESET</button>
+        <button type="button" onclick="window.event.preventDefault(); window.sessionStorage.clear(); window.alert('storage cleared'); this.blur();">TEST</button>
+      </fieldset>
+    </form>
+  </div>
+</main>
+</div>
+</body>
+</html>

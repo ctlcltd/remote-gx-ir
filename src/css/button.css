@@ -1,0 +1,54 @@
+/**
+ * remote-gx-ir/src/css/button.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+button {
+  margin: auto;
+  padding: .7rem 1.3rem;
+  font-size: .8rem;
+  font-weight: bold;
+  letter-spacing: .02rem;
+  color: #fff;
+  background: dimgray;
+  border: 0;
+  border-radius: .2rem;
+  box-shadow: 0 .1rem .1rem 0 #101010;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-appearance: none;
+  transition: 50ms ease-out;
+}
+button:focus {
+  background: gray;
+}
+button.big {
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  letter-spacing: .05rem;
+  border-radius: .5rem;
+  text-transform: uppercase;
+}
+
+button[type="submit"] {
+  background: darkcyan;
+  text-transform: uppercase;
+}
+button[type="submit"]:focus {
+  background: cadetblue;
+}
+button span {
+  position: relative;
+  display: inline-block;
+  font-weight: normal;
+  line-height: 1;
+}
+
+button.close {
+  font-size: 3rem;
+  font-weight: normal;
+  background: transparent;
+  box-shadow: none;
+}

@@ -1,0 +1,34 @@
+/**
+ * remote-gx-ir/src/css/top.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+.top {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  height: 2.25rem;
+  background: #202020;
+  box-shadow: 0 .3rem .4rem .8rem #202020;
+}
+
+.top button {
+  min-width: 2.6rem;
+  color: #fff;
+  background: slategrey;
+}
+.top button:focus {
+  background: lightslategray;
+}
+.top button:first-of-type { margin-left: 0; }
+.top button:last-of-type { margin-right: 0; }
+
+.top div:first-child { float: left; margin-left: 0; }
+.top div:last-child { float: right; margin-right: 0; }
+.top div { display: inline-block; margin: 0 -.2rem; }
+
+.top button span {
+  left: -.3rem;
+}

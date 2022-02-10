@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<link rel="stylesheet" href="css/index.css">
+<title>REMOTE-GX-IR</title>
+</head>
+<body>
+<div id="cnt">
+<div id="infobar" class="infobar">
+  <div id="sending" class="sending" hidden></div>
+  <div id="zap" class="zap switch">
+    <span class="zap-label">ZAP</span>
+    <label>
+      <input type="checkbox" onclick="this.blur()" onchange="ir.zap(arguments[0], this.checked)">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div id="livetv" class="livetv switch">
+    <span class="livetv-label">LIVE TV</span>
+    <label>
+      <input type="checkbox" onclick="this.blur()" onchange="ir.livetv(arguments[0], this.checked)">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div>
+    <div id="connect" class="connect">
+      <button class="infobar-connect" onclick="ir.connect(arguments[0])"><span class="connect-icon connect-icon-disconnect icon" hidden></span><span class="connect-icon connect-icon-reconnect icon"></span> <span class="connect-label connect-label-disconnect" hidden>DISCONNECT</span><span class="connect-label connect-label-reconnect">RECONNECT</span></button>
+    </div>
+    <div id="sets" class="sets">
+      <button class="infobar-sets" onclick="ir.settings(arguments[0])"><span class="sets-icon icon"></span> <span class="sets-label">SETTINGS</span></button>
+    </div>
+  </div>
+</div>
+</div>
+</body>
+</html>

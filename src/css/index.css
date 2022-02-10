@@ -1,0 +1,26 @@
+/**
+ * remote-gx-ir/src/css/index.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+@import "base.css";
+@import "layout.css";
+@import "overlay.css";
+@import "icons.css";
+@import "table.css";
+@import "form.css";
+@import "button.css";
+@import "switch.css";
+@import "top.css";
+@import "infobar.css";
+@import "controls.css";
+@import "display.css";
+@import "indicators.css";
+@import "ctrl.css";
+@import "funcs.css";
+@import "bottom.css";
+@import "chlist.css";
+@import "mqs.css";
+@import "test.css";

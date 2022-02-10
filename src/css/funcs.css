@@ -1,0 +1,42 @@
+/**
+ * remote-gx-ir/src/css/funcs.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+.funcs button {
+  position: relative;
+  margin-right: .6rem;
+  margin-left: .6rem;
+}
+.funcs button:not(.funcs-help) {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border-radius: 50%;
+  text-indent: -999pt;
+}
+.funcs button:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: .05rem;
+  bottom: 0;
+  left: .05rem;
+  background: rgba(0,0,0,.12);
+}
+.funcs button:not(.funcs-help):after {
+  border-radius: 50%;
+}
+.funcs button:focus:after {
+  background: rgba(0,0,0,.06);
+}
+.funcs .funcs-help {
+  margin-left: 2rem;
+}
+.funcs .funcs-f1, .funcs .funcs-f1:focus { background: red; }
+.funcs .funcs-f2, .funcs .funcs-f2:focus { background: green; }
+.funcs .funcs-f3, .funcs .funcs-f3:focus { background: yellow; }
+.funcs .funcs-f4, .funcs .funcs-f4:focus { background: blue; }
+.funcs .funcs-help, .funcs .funcs-help:focus { color: #000; background: white; }

@@ -1,0 +1,31 @@
+/**
+ * remote-gx-ir/src/css/chlist.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+.chlist .form { height: calc(100% - 2rem); }
+.chlist td { font-weight: bold; }
+.chlist th:first-child, .chlist td:first-child { width: 4.5rem; }
+.chlist th:last-child { text-indent: -999pt; }
+.chlist td:nth-child(2) { text-overflow: ellipsis; white-space: nowrap; overflow-x: hidden; }
+.chlist td:last-child { width: 1rem; font-size: .65rem; font-weight: normal; color: gold; opacity: .4; text-align: center; }
+.chlist tr[disabled] td { opacity: .3; }
+
+.chlist fieldset:first-child {
+  position: relative;
+  height: calc(100vh - 5rem);
+  margin: 0;
+}
+.chlist fieldset:first-child:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: block;
+  height: 2rem;
+  background: linear-gradient(0, #202020, transparent);
+  z-index: 0;
+}

@@ -1,0 +1,56 @@
+/**
+ * remote-gx-ir/src/css/base.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Helvetica, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: center;
+  color: #eee;
+  background: #2d2f2d;
+  cursor: default;
+  user-select: none;
+}
+
+:focus {
+  outline: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 0;
+  height: 0;
+}
+
+[hidden] { display: none !important; }
+[disabled] { opacity: .8; }
+[readonly] { opacity: .9; }
+[data-loading] { animation: infinite loading 600ms linear alternate; }
+
+@keyframes loading {
+  0% {
+    opacity: .77;
+  }
+  100% {
+    opacity: .89;
+  }
+}
+
+p {
+  text-align: left;
+}

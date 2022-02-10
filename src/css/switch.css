@@ -1,0 +1,47 @@
+/**
+ * remote-gx-ir/src/css/switch.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+.switch label {
+  position: relative;
+  display: inline-block;
+  width: 2.3rem;
+  height: 1.55rem;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.switch .slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #111;
+  box-shadow: 0 0 .1rem .2rem rgba(0,0,0,.1), inset 0 0 .2rem .1rem rgba(0,0,0,.1);
+  border-radius: .5rem;
+  transition: .4s;
+  cursor: pointer;
+}
+.switch .slider:before {
+  content: '';
+  position: absolute;
+  width: 1rem;
+  height: 1.05rem;
+  left: .2rem;
+  bottom: .25rem;
+  background: #eee;
+  box-shadow: .02rem .02rem .1rem rgba(0,0,0,.5);
+  transition: 50ms ease-out;
+}
+.switch input:checked + .slider:before {
+  transform: translateX(.95rem);
+}
+.switch .slider:before {
+  border-radius: 50%;
+}

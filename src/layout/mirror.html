@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<link rel="stylesheet" href="css/index.css">
+<title>REMOTE-GX-IR</title>
+</head>
+<body>
+<div id="cnt">
+<main id="mirror" class="mirror view overlay" hidden>
+  <div class="overlay-top">
+    <button class="close" onclick="ir.mirror(arguments[0], true)" title="CLOSE"><span class="close-icon icon"></span></button>
+  </div>
+  <div class="form flex">
+    <form>
+      <p class="form-label">Mirror</p>
+      <fieldset id="ftp" hidden>
+        <label for="ftpurl">FTP URL</label>
+        <input class="ftpurl" id="ftpurl" type="text" readonly>
+      </fieldset>
+      <fieldset id="dlna" hidden>
+        <label for="dlnaurl">DLNA URL</label>
+        <input class="dlnaurl" id="dlnaurl" type="text" readonly>
+      </fieldset>
+      <fieldset id="stream" hidden>
+        <label>Stream URL</label>
+        <input class="streamurl" id="streamurl" type="text" readonly>
+      </fieldset>
+      <fieldset>
+        <button>CLIPBOARD</button>
+        <button><span class="stop-icon"></span> STOP</button>
+      </fieldset>
+    </form>
+  </div>
+</main>
+</div>
+</body>
+</html>

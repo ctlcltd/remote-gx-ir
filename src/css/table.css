@@ -1,0 +1,58 @@
+/**
+ * remote-gx-ir/src/css/table.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+table {
+  border-collapse: collapse;
+}
+th {
+  font-weight: normal;
+  text-transform: uppercase;
+}
+th, td {
+  padding: 1rem 1rem;
+  font-size: .8rem;
+  text-align: left;
+}
+td {
+  border: 0 solid #2d2f2d;
+  border-width: 1px 0;
+  transition: background ease .1s;
+}
+tr:nth-child(2) td, tr:nth-last-child(1) td {
+  border: 0;
+}
+th { background: #242424; }
+
+.table {
+  display: block;
+  width: 100%;
+  border: 0;
+}
+.table table {
+  width: 100%;
+}
+
+.table.scrollable {
+  overflow: scroll;
+  -webkit-overflow-scrolling: touch;
+}
+.table.scrollable thead th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.table.clickable tbody tr {
+  cursor: pointer;
+}
+.table.clickable tbody tr {
+  background: #202020;
+}
+.table.clickable tbody tr:focus {
+  background: #181818;
+}

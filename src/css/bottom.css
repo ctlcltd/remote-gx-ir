@@ -1,0 +1,24 @@
+/**
+ * remote-gx-ir/src/css/bottom.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+.bottom {
+  display: block;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -1rem;
+}
+
+.bottom > div {
+  width: calc(200% + 2rem);
+}
+.bottom > div > div {
+  width: calc(50% - 1rem);
+  overflow-x: auto;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+}

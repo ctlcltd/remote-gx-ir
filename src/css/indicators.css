@@ -1,0 +1,101 @@
+/**
+ * remote-gx-ir/src/css/indicators.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+.volume,
+.signal {
+  font-size: .5rem;
+  white-space: nowrap;
+}
+.volume span,
+.signal span {
+  display: inline-block;
+  margin-left: .3rem;
+  text-align: center;
+}
+.volume span:first-child,
+.signal span:first-child {
+  padding: .1rem;
+  line-height: 1.2;
+  opacity: .5;
+  text-shadow: -1px 1px 1px rgba(200,200,200,.5);
+  color: rgba(0,0,0,.5);
+}
+
+.volume {
+  position: absolute;
+  top: 0;
+  right: 1rem;
+  height: 2.2rem;
+}
+.volume.mute .volume-label { color: grey; }
+.volume.mute .volume-level { opacity: .6; }
+.volume .volume-label {
+  display: block;
+  float: none;
+  margin: .5rem 0 .4rem .3rem;
+  padding: 0;
+}
+.volume-level {
+  position: relative;
+  width: 2.2rem;
+  height: 2rem;
+  line-height: 1.9rem;
+  text-align: center;
+  background: #222;
+  text-shadow: 0 0 1px #000;
+  border: 1px solid #363636;
+  z-index: 1;
+  overflow: hidden;
+}
+.volume-level:before {
+  content: '';
+  position: absolute;
+  display: block;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--level, 0%);
+  background: #666;
+  opacity: .6;
+  z-index: -1;
+}
+
+.signal {
+  position: absolute;
+  left: .5rem;
+  bottom: .4rem;
+  clear: both;
+}
+.signal .signal-label {
+  float: right;
+  margin-left: .5rem;
+}
+.signal span:not(:first-child) {
+  position: relative;
+  width: 4.2rem;
+  height: .875rem;
+  background: #222;
+  text-shadow: 0 0 1px #000;
+  border: 1px solid #363636;
+  border-radius: .5rem;
+  z-index: 1;
+  overflow: hidden;
+}
+.signal span:not(:first-child):before {
+  content: '';
+  position: absolute;
+  display: block;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--level, 0%);
+  opacity: .95;
+  z-index: -1;
+}
+.signal-strength:before { background: firebrick; }
+.signal-quality:before { background: royalblue; }

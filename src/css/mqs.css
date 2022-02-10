@@ -1,0 +1,93 @@
+/**
+ * remote-gx-ir/src/css/mqs.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+@media (orientation: portrait) {
+  .controls {
+    height: calc(100% - 8.4rem);
+  }
+}
+@media (orientation: landscape) {
+  .controls {
+    height: calc(100% - 8.4rem);
+  }
+}
+
+@media (min-height: 701px) {
+  .controls > div {
+    margin-top: 8%;
+    margin-bottom: 8%;
+  }
+  .controls > .ctrl {
+    margin-bottom: 12%;
+  }
+  .controls > .bottom {
+    margin-top: 16%;
+  }
+  .digits {
+    float: none;
+  }
+}
+@media (min-width: 60ch) {
+  .view {
+    padding: 1.5rem 0;
+  }
+  .overlay.view {
+    padding: 1.5rem 2rem;
+  }
+  .overlay-top .close {
+    margin: -1.5rem -.5rem;
+  }
+  .remote > div {
+    margin: 0 2rem;
+  }
+  .infobar,
+  .remote > nav {
+    padding-right: 2rem;
+    padding-left: 2rem;
+  }
+  .settings .overlay-top {
+    right: 1.5rem;
+    left: 1.5rem;
+  }
+  .controls > .bottom {
+    margin-right: 0;
+    margin-left: 0;
+  }
+  .sending {
+    top: .8rem;
+    left: .7rem;
+    transform: none;
+  }
+  .connect .connect-label,
+  .sets button .sets-label {
+    display: inline-block;
+  }
+  .connect button .connect-icon,
+  .sets button .sets-icon {
+    left: -.25rem;
+  }
+  .bottom {
+    padding-top: 1rem;
+  }
+  .bottom > div,
+  .bottom > div > div {
+    width: auto;
+  }
+  .misc {
+    float: right;
+  }
+  .misc > div {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .digits {
+    float: none;
+    margin-left: -1.5rem;
+  }
+  .no-session .infobar:before {
+    right: 15rem;
+  }
+}

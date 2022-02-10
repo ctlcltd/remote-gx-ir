@@ -1,0 +1,106 @@
+/**
+ * remote-gx-ir/src/css/controls.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+.controls {
+  margin: 1.25rem 0 0;
+  overflow-x: auto;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+}
+.controls > div {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  z-index: 0;
+}
+.controls > .top {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+}
+.controls button {
+  display: inline-block;
+  margin: .3rem .2rem;
+  padding: .5rem 1rem;
+  font-size: .7rem;
+  background: #656565;
+  box-shadow: 0 .1rem .1rem 0 #1c1c1c, 0 0 .1rem .2rem rgba(0,0,0,.1), inset 0 0 0 .05rem rgba(200,200,200,.1);
+  border-radius: .2rem;
+}
+.controls button:focus {
+  background: #777;
+}
+
+.misc {
+  float: left;
+}
+.misc > div {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  width: fit-content;
+  max-height: fit-content;
+  margin: auto;
+}
+.misc button {
+  margin-top: .4rem;
+  margin-right: .3rem;
+  margin-left: .3rem;
+  min-width: 6rem;
+  max-width: 44%;
+  text-overflow: ellipsis;
+  overflow-x: hidden;
+}
+
+.digits {
+  float: right;
+  display: inline-block;
+}
+.digits button {
+  height: 2.2rem;
+  margin: .4rem .3rem;
+  font-size: 1rem;
+}
+.digits button,
+.funcs .funcs-help,
+.funcs .funcs-help:after {
+  border-radius: .4rem;
+}
+.digits div:last-child button:first-child,
+.digits div:last-child button:last-child {
+  position: relative;
+  top: -.1rem;
+  width: 3.6rem;
+  padding-right: 0;
+  padding-left: 0;
+  font-size: .6rem;
+  letter-spacing: -.01rem;
+}
+.digits button {
+  height: 2.2rem;
+  margin: .4rem .3rem;
+  font-size: 1rem;
+}
+.digits button,
+.funcs .funcs-help,
+.funcs .funcs-help:after {
+  border-radius: .4rem;
+}
+.digits div:last-child button:first-child,
+.digits div:last-child button:last-child {
+  position: relative;
+  top: -.1rem;
+  width: 3.6rem;
+  padding-right: 0;
+  padding-left: 0;
+  font-size: .6rem;
+  letter-spacing: -.01rem;
+}
+
+.player button {
+  min-width: 2.9rem;
+}

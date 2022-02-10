@@ -1,0 +1,72 @@
+/**
+ * remote-gx-ir/src/css/ctrl.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+.ctrl button {
+  color: #000;
+  background: #b5b5b5;
+}
+.ctrl button:focus {
+  background: #cfcfcf;
+}
+
+.ctrl .ctrl-top,
+.ctrl .ctrl-bottom {
+  display: block;
+  clear: both;
+}
+
+.ctrl .ctrl-top { margin-bottom: .5rem; }
+.ctrl .ctrl-bottom { margin-top: .5rem; }
+.ctrl .ctrl-left { float: left; }
+.ctrl .ctrl-right { float: right; }
+
+.ctrl-left button,
+.ctrl-right button {
+  display: block;
+  margin: 1.2rem 0;
+}
+
+.ctrl-left button { width: 4.7rem; }
+.ctrl-right button { width: 5.1rem; }
+
+.ctrl-bottom button { padding-right: .8rem; padding-left: .8rem; }
+.ctrl-left button span, .ctrl-right button span { right: -.3rem; }
+
+.ctrl div {
+  display: inline-block;
+}
+.ctrl button {
+  color: #000;
+  background: #b5b5b5;
+}
+.ctrl-mid {
+  max-width: 9rem;
+  white-space: nowrap;
+}
+.ctrl-mid div:first-child {
+  margin: 0 50%;
+  transform: translateX(-50%);
+}
+.ctrl-mid div:last-child {
+  margin: 0 -50%;
+  transform: translate(-89%, -96%);
+}
+.ctrl-mid div:first-child button {
+  display: block;
+}
+.ctrl-mid div:last-child button {
+  display: inline-block;
+}
+.ctrl-mid div:first-child button:first-child {
+  margin-bottom: 3rem;
+}
+
+.ctrl-mid .ctrl-mid-up { border-radius: 50% 50% .4rem .4rem; }
+.ctrl-mid .ctrl-mid-right { border-radius: .4rem 50% 50% .4rem; }
+.ctrl-mid .ctrl-mid-down { border-radius: .4rem .4rem 50% 50%; }
+.ctrl-mid .ctrl-mid-left { border-radius: 50% .4rem .4rem 50%; }
+.ctrl-mid .ctrl-mid-ok { width: 2.2rem; height: 2rem; margin: .2rem 0; padding: 0; font-size: .8rem; letter-spacing: -.01rem; border-radius: 36%; }

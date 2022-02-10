@@ -1,0 +1,146 @@
+/**
+ * remote-gx-ir/src/css/form.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+form, fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+form {
+  margin: 0;
+}
+
+fieldset, fieldset > div {
+  margin: 0 0 1.5rem 0;
+}
+fieldset:last-child {
+  margin: 0;
+}
+fieldset > div {
+  text-align: left;
+}
+
+form > p {
+  margin: 0 0 2rem 0;
+  font-size: 1.1rem;
+}
+form span.info {
+  display: block;
+  margin: .5rem 0 0 0;
+  font-size: .7rem;
+  opacity: .5;
+}
+legend {
+  margin: 0 0 1.5rem 0;
+  font-size: .95rem;
+  text-align: left;
+}
+label {
+  display: block;
+  margin: 0 0 .5rem 0;
+  font-size: .8rem;
+}
+
+input, textarea, select {
+  display: inline-block;
+  padding: .6rem .5rem;
+  font-size: .9rem;
+  color: #fff;
+  background: #3c3c3c;
+  text-align: left;
+  border: solid #3f3f3f;
+  border-width: .05rem 0 0 0;
+  border-radius: 0;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  transition: border ease-out 50ms;
+}
+input[type="text"], textarea, select {
+  width: 100%;
+}
+input[type="checkbox"] {
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: .3rem;
+}
+input[type="checkbox"]:after {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  margin: -.05rem 0 0 -.002rem;
+  border: .5rem solid transparent;
+}
+input[type="checkbox"]:checked:after {
+  border-color: initial;
+}
+input, textarea, select {
+  box-shadow: 0 0 .1rem 0 transparent;
+  opacity: .97;
+}
+input + input, textarea + input, select + input, button + input, input + textarea, textarea + textarea, select + textarea, button + textarea, input + select, textarea + select, select + select, button + select, input + button, textarea + button, select + button, button + button {
+  margin-left: 1rem;
+}
+input:focus, textarea:focus, select:focus {
+  background: #383838;
+  border-color: #262626;
+  box-shadow: 0 0 .1rem 0 #111;
+  opacity: 1;
+}
+input[placeholder],
+textarea[placeholder] {
+  padding: 1.1rem .5rem;
+  margin: 0 0 .4rem 0;
+}
+textarea {
+  min-height: 6rem;
+  font-size: .8rem;
+  line-height: 1.6;
+}
+
+.form.flex,
+.form.flex form,
+.form.flex .table.scrollable {
+  height: 100%;
+}
+.form.flex form {
+  display: flex;
+  flex-direction: column;
+}
+.form.flex fieldset:last-child {
+  margin-top: auto;
+}
+
+.form.fill fieldset {
+  height: auto;
+}
+
+.form.scrollable form {
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+}
+.form.scrollable form {
+  height: 100%;
+}
+.form.scrollable fieldset:last-child {
+  position: -webkit-sticky;
+  position: sticky;
+  bottom: 0;
+}
+
+
+.overlay form > p {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  height: 2.5rem;
+  padding: .3rem 0;
+  background: #202020;
+  box-shadow: 0 .3rem .4rem .8rem #202020;
+  z-index: 1;
+}
+

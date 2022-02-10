@@ -1,0 +1,73 @@
+/**
+ * remote-gx-ir/src/css/layout.css
+ * 
+ * @author Leonardo Laureti
+ * @license MIT License
+ */
+
+#cnt {
+  position: relative;
+}
+
+#cnt,
+.view,
+.overlay {
+  max-width: 60ch;
+  height: 100vh;
+  margin: auto;
+  padding: 0;
+  background: #202020;
+}
+
+.remote {
+  margin: auto;
+  padding: 0;
+}
+.remote.view {
+  padding-top: 0;
+}
+.remote > div {
+  margin: 0 1rem;
+}
+.infobar,
+.remote > nav {
+  padding: 0 1rem;
+}
+
+.table.scrollable,
+.form.scrollable {
+  position: relative;
+  height: 100%;
+}
+
+
+.mirror .streamurl,
+.mirror .streamurl:focus {
+  cursor: pointer;
+  background: #636363;
+}
+
+.no-session .infobar .switch,
+.no-session .remote button {
+  opacity: .5;
+}
+.no-session .display > span {
+  opacity: .75;
+}
+.no-session .infobar:before,
+.no-session .remote:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  z-index: 10;
+}
+.no-session .infobar:before {
+  right: 6rem;
+}
+.no-session .remote:before {
+  top: 3rem;
+}
