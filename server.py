@@ -356,6 +356,10 @@ def command(uri, qs):
 
 	url = 'http://' + config['WEBIF']['HOST'] + '/' + uri
 
+	if qs:
+		params = urllib.parse.urlencode(qs);
+		url += '?%s' % params;
+
 	try:
 		request = urllib.request.urlopen(url, timeout=int(config['WEBIF']['TIMEOUT']))
 		mimetype = request.info()['Content-Type']
